@@ -90,6 +90,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         })->name('merchant.dashboard');
     });
 
+    //Route Admin
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function (){
+        Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+
+        // Transaction Routes
+        Route::get('/transactions', [App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions.index');
+        Route::get('/transactions/{transaction}', [App\Http\Controllers\Admin\TransactionController::class, 'show'])->name('transactions.show');
+    });
     // Merchant KYB Routes
     Route::middleware('role:merchant')->prefix('merchant/kyb')->name('merchant.kyb.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\KybController::class, 'dashboard'])->name('dashboard');

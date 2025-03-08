@@ -54,6 +54,22 @@ class Transaction extends Model
     }
 
     /**
+     * Get the sender of the transaction.
+     */
+    public function sender()
+    {
+        return $this->belongsTo(User::class, 'sender_id');
+    }
+
+    /**
+     * Get the recipient of the transaction.
+     */
+    public function recipient()
+    {
+        return $this->belongsTo(User::class, 'recipient_id');
+    }
+
+    /**
      * Get the formatted amount.
      */
     public function getFormattedAmountAttribute(): string
