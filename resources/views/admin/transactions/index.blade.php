@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-app-layout-sideblock title="Transactions Index" is-header-blur="true">
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-xl font-medium text-slate-800 dark:text-navy-50">
@@ -12,9 +12,7 @@
         </div>
     </x-slot>
 
-    <div class="grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6">
-        <div>
-            @livewire('admin.transactions.index')
-        </div>
-    </div>
-</x-app-layout>
+    <main class="main-content w-full px-[var(--margin-x)] pb-8">
+        @livewire('admin.transactions.index')
+    </main>
+</x-app-layout-sideblock>

@@ -222,6 +222,16 @@
                     @endphp
                     <div class="h-full rounded-full bg-info" style="width: {{ $additionalInfoPercentage }}%"></div>
                 </div>
+                <div class="flex justify-between pt-4 pb-2">
+                    <p class="text-slate-700 dark:text-navy-100">{{ __('KIV') }}</p>
+                    <p class="font-medium text-purple-500">{{ $kycStatusData['kiv'] }}</p>
+                </div>
+                <div class="mt-2 h-2 w-full rounded-full bg-slate-150 dark:bg-navy-500">
+                    @php
+                    $kivPercentage = $totalKyc > 0 ? ($kycStatusData['kiv'] / $totalKyc) * 100 : 0;
+                    @endphp
+                    <div class="h-full rounded-full bg-purple-500" style="width: {{ $kivPercentage }}%"></div>
+                </div>
             </div>
         </div>
 
@@ -281,6 +291,17 @@
                     0;
                     @endphp
                     <div class="h-full rounded-full bg-info" style="width: {{ $additionalInfoPercentage }}%"></div>
+                </div>
+
+                <div class="flex justify-between pt-4 pb-2">
+                    <p class="text-slate-700 dark:text-navy-100">{{ __('KIV') }}</p>
+                    <p class="font-medium text-purple-500">{{ $kybStatusData['kiv'] }}</p>
+                </div>
+                <div class="mt-2 h-2 w-full rounded-full bg-slate-150 dark:bg-navy-500">
+                    @php
+                    $kivPercentage = $totalKyb > 0 ? ($kybStatusData['kiv'] / $totalKyb) * 100 : 0;
+                    @endphp
+                    <div class="h-full rounded-full bg-purple-500" style="width: {{ $kivPercentage }}%"></div>
                 </div>
             </div>
         </div>

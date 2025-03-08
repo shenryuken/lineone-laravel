@@ -1,4 +1,4 @@
-<div>
+<div class="py-12">
     <!-- Transaction Type Cards -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6 mb-5">
         <div class="card p-4 sm:p-5">

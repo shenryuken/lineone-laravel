@@ -12,7 +12,7 @@
         </div>
     </x-slot>
     <!-- Main Content Wrapper -->
-    <main class="main-content w-full pb-8">
+    <main class="main-content w-full px-[var(--margin-x)] pb-8">
         <livewire:admin.dashboard />
     </main>
     @push('scripts')

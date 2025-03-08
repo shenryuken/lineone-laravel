@@ -126,6 +126,7 @@ class Dashboard extends Component
             'pending' => Kyc::where('status', 'pending')->count(),
             'approved' => Kyc::where('status', 'approved')->count(),
             'rejected' => Kyc::where('status', 'rejected')->count(),
+            'kiv' => Kyc::where('status', 'kiv')->count(),
             'additional_info' => Kyc::where('status', 'additional_info')->count(),
         ];
     }
@@ -136,6 +137,7 @@ class Dashboard extends Component
             'pending' => Kyb::where('status', 'pending')->count(),
             'approved' => Kyb::where('status', 'approved')->count(),
             'rejected' => Kyb::where('status', 'rejected')->count(),
+            'kiv' => Kyb::where('status', 'kiv')->count(),
             'additional_info' => Kyb::where('status', 'additional_info')->count(),
         ];
     }
