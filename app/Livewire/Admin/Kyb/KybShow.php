@@ -143,6 +143,31 @@ class KybShow extends Component
         $this->reset('adminNote');
     }
 
+    // Add a method to set KIV status
+    public function setKiv()
+    {
+        $this->kyb->status = 'kiv';
+        $this->kyb->save();
+
+        // Create status history record
+        KybStatusHistory::create([
+            'kyb_id' => $this->kyb->id,
+            'status' => 'kiv',
+            'comment' => $this->adminNote,
+            'user_id' => auth()->id(),
+        ]);
+
+        // Notify the user
+        $this->kyb->user->notify(new KybStatusUpdated($this->kyb));
+
+        $this->dispatchBrowserEvent('notify', [
+            'type' => 'success',
+            'message' => 'KYB application has been set to KIV (Keep In View).'
+        ]);
+
+        $this->reset('adminNote');
+    }
+
     public function viewDocument($documentPath, $documentName)
     {
         $this->currentDocument = [

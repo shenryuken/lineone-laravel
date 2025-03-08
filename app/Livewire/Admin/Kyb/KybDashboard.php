@@ -48,7 +48,7 @@ class KybDashboard extends Component
 
     private function loadStatusDistribution()
     {
-        $statuses = ['pending', 'approved', 'rejected', 'additional_info'];
+        $statuses = ['pending', 'approved', 'rejected', 'additional_info', 'kiv'];
         $counts = [];
 
         foreach ($statuses as $status) {

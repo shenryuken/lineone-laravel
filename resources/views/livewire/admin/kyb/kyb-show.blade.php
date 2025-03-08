@@ -7,8 +7,8 @@
                 <h2 class="text-lg font-medium tracking-wide text-slate-700 dark:text-navy-100">
                     {{ __('Business Information') }}
                 </h2>
-                <div
-                    class="badge rounded-full @if($kyb->status === 'pending') bg-warning/10 text-warning dark:bg-warning/15 @elseif($kyb->status === 'approved') bg-success/10 text-success dark:bg-success/15 @elseif($kyb->status === 'rejected') bg-error/10 text-error dark:bg-error/15 @elseif($kyb->status === 'additional_info') bg-info/10 text-info dark:bg-info/15 @endif">
+                <div class="badge rounded-full @if($kyb->status === 'pending') bg-warning/10 text-warning dark:bg-warning/15 @elseif($kyb->status === 'approved') bg-success/10 text-success dark:bg-success/15 @elseif($kyb->status === 'rejected') bg-error/10 text-error dark:bg-error/15 @elseif($kyb->status === 'additional_info') bg-info/10 text-info dark:bg-info/15 @elseif($kyb->status === 'kiv')
+                                    bg-purple-500/10 text-purple-500 dark:bg-purple-500/15 @endif">
                     {{ ucfirst(str_replace('_', ' ', $kyb->status)) }}
                 </div>
             </div>
@@ -401,6 +401,13 @@
                         {{ __('Request Additional Information') }}
                     </button>
                 </div>
+
+                <div class="space-y-2">
+                    <button wire:click="setKiv"
+                        class="btn w-full bg-purple-500 font-medium text-white hover:bg-purple-600 focus:bg-purple-600 active:bg-purple-600/90">
+                        {{ __('Set to KIV') }}
+                    </button>
+                </div>
                 @else
                 <div class="alert flex rounded-lg bg-primary/10 py-4 px-4 text-primary dark:bg-primary/15">
                     <div class="flex flex-1 items-center justify-between">
@@ -432,7 +439,7 @@
                         <li class="timeline-item">
                             <div
                                 class="timeline-item-point
-                                    @if($history->status === 'pending') rounded-full bg-warning @elseif($history->status === 'approved') rounded-full bg-success @elseif($history->status === 'rejected') rounded-full bg-error @elseif($history->status === 'additional_info') rounded-full bg-info @else rounded-full bg-slate-300 dark:bg-navy-400 @endif">
+                                    @if($history->status === 'pending') rounded-full bg-warning @elseif($history->status === 'approved') rounded-full bg-success @elseif($history->status === 'rejected') rounded-full bg-error @elseif($history->status === 'additional_info') rounded-full bg-info @elseif($history->status === 'kiv') rounded-full bg-purple-500 @else rounded-full bg-slate-300 dark:bg-navy-400 @endif">
                             </div>
                             <div class="timeline-item-content flex-1 pl-4 sm:pl-8">
                                 <div class="flex flex-col justify-between pb-2 sm:flex-row sm:pb-0">

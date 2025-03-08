@@ -61,6 +61,9 @@ class KybStatusUpdated extends Notification implements ShouldQueue
             $message->line('We regret to inform you that your KYB application has been rejected.');
             $message->line('Reason: ' . $this->kyb->rejection_reason);
             $message->line('If you believe this is an error or would like to submit a new application, please contact our support team.');
+        } elseif ($this->kyb->status === 'kiv') {
+            $message->line('Your KYB application has been placed under review (KIV - Keep In View).');
+            $message->line('Our team will continue to review your application and may contact you for further information if needed.');
         }
 
         $message->action('View Application', route('merchant.kyb.view', $this->kyb));
@@ -96,6 +99,8 @@ class KybStatusUpdated extends Notification implements ShouldQueue
                 return 'Your KYB application has been approved.';
             case 'rejected':
                 return 'Your KYB application has been rejected.';
+            case 'kiv':
+                return 'Your KYB application has been placed under review (KIV - Keep In View).';
             default:
                 return 'Your KYB application status has been updated.';
         }

@@ -70,6 +70,7 @@ class KybIndex extends Component
             'approved' => Kyb::where('status', 'approved')->count(),
             'rejected' => Kyb::where('status', 'rejected')->count(),
             'additional_info' => Kyb::where('status', 'additional_info')->count(),
+            'kiv' => Kyb::where('status', 'kiv')->count(),
         ];
 
         return view('livewire.admin.kyb.kyb-index', [
