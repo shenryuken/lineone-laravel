@@ -1,4 +1,4 @@
-<div>
+<div class="py-12">
     <!-- Period Selector -->
     <div class="card mb-5 p-3">
         <div class="flex flex-wrap items-center justify-between">
@@ -354,6 +354,67 @@
                 <p class="mt-2 text-slate-500 dark:text-navy-200">{{ __('No recent activity') }}</p>
             </div>
             @endif
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mt-4 sm:mt-5 lg:mt-6">
+        <div class="card p-4 sm:p-5">
+            <h2 class="text-base font-medium tracking-wide text-slate-700 dark:text-navy-100">
+                Quick Actions
+            </h2>
+            <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5">
+                <a href="{{ route('admin.kyb.index', ['status' => 'pending']) }}"
+                    class="card flex flex-col items-center justify-center p-4 text-center hover:bg-slate-100 dark:hover:bg-navy-600">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10 dark:bg-warning/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-warning" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-3 text-base font-medium text-slate-700 dark:text-navy-100">
+                        Pending Applications
+                    </h3>
+                    <p class="mt-1 text-xs+ text-slate-400 dark:text-navy-300">
+                        View and process pending applications
+                    </p>
+                </a>
+
+                <a href="{{ route('admin.kyb.index', ['verificationStatus' => 'pass']) }}"
+                    class="card flex flex-col items-center justify-center p-4 text-center hover:bg-slate-100 dark:hover:bg-navy-600">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 dark:bg-success/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-success" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-3 text-base font-medium text-slate-700 dark:text-navy-100">
+                        Verified Applications
+                    </h3>
+                    <p class="mt-1 text-xs+ text-slate-400 dark:text-navy-300">
+                        Review and approve verified applications
+                    </p>
+                </a>
+
+                <a href="{{ route('admin.kyb.index', ['status' => 'kiv']) }}"
+                    class="card flex flex-col items-center justify-center p-4 text-center hover:bg-slate-100 dark:hover:bg-navy-600">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-info/10 dark:bg-info/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-info" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="mt-3 text-base font-medium text-slate-700 dark:text-navy-100">
+                        KIV Applications
+                    </h3>
+                    <p class="mt-1 text-xs+ text-slate-400 dark:text-navy-300">
+                        Review applications marked for further review
+                    </p>
+                </a>
+            </div>
         </div>
     </div>
 

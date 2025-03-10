@@ -448,6 +448,7 @@
                         </svg>
                         <span>Transfer</span>
                     </button>
+                @if(auth()->user()->kyc_status === 'approved')
                     <button wire:click="withdraw({{ Auth::user()->wallet()->id }})"
                         class="btn h-10 w-full bg-slate-150 font-medium text-slate-800 hover:bg-slate-200 focus:bg-slate-200 active:bg-slate-200/80 dark:bg-navy-500 dark:text-navy-50 dark:hover:bg-navy-450 dark:focus:bg-navy-450 dark:active:bg-navy-450/90">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24"
@@ -457,7 +458,24 @@
                         </svg>
                         <span>Withdraw</span>
                     </button>
+                @else
+                    <div class="btn h-20 rounded-lg bg-slate-200 font-medium text-slate-500 cursor-not-allowed dark:bg-navy-500 dark:text-navy-300">
+                        <div class="flex flex-col items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <span class="mt-1 text-xs">Withdraw</span>
+                        </div>
+                    </div>
+                @endif
                 </div>
+                @if(auth()->user()->kyc_status !== 'approved')
+                <div class="mt-3 p-2 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/30">
+                    <p class="text-xs text-amber-600 dark:text-amber-400">
+                        <span class="font-medium">Withdrawals restricted:</span> Your account needs to be approved before you can withdraw funds. Please complete your verification process.
+                    </p>
+                </div>
+            @endif
             </div>
         </div>
 

@@ -51,6 +51,13 @@ class Dashboard extends Component
 
     public function withdraw($walletId = null)
     {
+        // Check if user is approved for withdrawals
+        if (auth()->user()->kyc_status !== 'approved') {
+            // Flash a message explaining why they can't withdraw
+            session()->flash('error', 'Withdrawals are only available for approved accounts. Please complete your verification process to enable withdrawals.');
+            return;
+        }
+
         $this->selectedWalletId = $walletId ?? auth()->user()->wallet()->id;
         $this->showWithdrawModal = true;
     }

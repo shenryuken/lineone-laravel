@@ -25,6 +25,7 @@ class User extends Authenticatable
         'email',
         'password',
         'status',
+        'kyc_status',
         'account_type',
     ];
 

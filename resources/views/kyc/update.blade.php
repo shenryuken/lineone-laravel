@@ -1,5 +1,6 @@
 <x-app-layout-sideblock title="Update KYC Information" is-header-blur="true">
-    <div class="main-content">
+    <main class="main-content w-full px-[var(--margin-x)] pb-8">
+
         <div class="px-[var(--margin-x)] transition-all duration-[.25s] pb-8 pt-6">
             <div class="flex items-center space-x-4 py-5 lg:py-6">
                 <h2 class="text-xl font-medium text-slate-800 dark:text-navy-50 lg:text-2xl">
@@ -12,5 +13,6 @@
                 </div>
             </div>
         </div>
-    </div>
+
+    </main>
 </x-app-layout-sideblock>

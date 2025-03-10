@@ -82,6 +82,19 @@ class Withdraw extends Component
 
     public function mount($wallet = null)
     {
+        // Check if user is approved for withdrawals
+        if (auth()->user()->status !== 'approved') {
+            // Log the attempt
+            Log::warning('Unapproved user attempted withdrawal', [
+                'user_id' => Auth::id(),
+                'status' => auth()->user()->status
+            ]);
+
+            // Redirect with message
+            session()->flash('error', 'Withdrawals are only available for approved accounts. Please complete your verification process to enable withdrawals.');
+            return redirect()->route('user.dashboard');
+        }
+
         // Load user's default wallet or the provided wallet
         if ($wallet) {
             $this->source_wallet = $wallet;
@@ -180,6 +193,28 @@ class Withdraw extends Component
 
     public function confirmWithdraw()
     {
+        // Double-check user approval status
+        if (auth()->user()->status !== 'approved') {
+            Log::warning('Unapproved user attempted to confirm withdrawal', [
+                'user_id' => Auth::id(),
+                'status' => auth()->user()->status
+            ]);
+
+            $this->isSuccess = false;
+            $this->resultMessage = 'Withdrawal failed. Your account is not approved for withdrawals.';
+            $this->resultDetails = [
+                'Error' => 'Account verification required',
+                'Status' => auth()->user()->status,
+                'Required Status' => 'approved'
+            ];
+
+            $this->showResult = true;
+            $this->withdraw_preview = false;
+            $this->currentStep = 3;
+
+            return;
+        }
+
         $this->validate();
         $this->calculateFee();
 

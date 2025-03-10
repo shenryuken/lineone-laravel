@@ -1,4 +1,4 @@
-<div>
+<div class="py-12">
     <!-- Period Selector -->
     <div class="card mb-5 p-3">
         <div class="flex flex-wrap items-center justify-between">

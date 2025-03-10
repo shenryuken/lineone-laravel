@@ -11,6 +11,32 @@
     </div>
     @endif
 
+    @if(auth()->user()->status !== 'approved')
+    <div class="card p-5">
+        <div class="flex justify-center">
+            <div class="max-w-lg text-center">
+                <div class="mb-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-warning mx-auto" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold text-slate-700 dark:text-navy-100">Account Verification Required</h2>
+                <p class="mt-2 text-slate-600 dark:text-navy-200">
+                    Withdrawals are only available for approved accounts. Please complete your verification process to
+                    enable withdrawals.
+                </p>
+                <div class="mt-6">
+                    <a href="{{ route('user.dashboard') }}"
+                        class="btn bg-primary font-medium text-white hover:bg-primary-focus focus:bg-primary-focus active:bg-primary-focus/90 dark:bg-accent dark:hover:bg-accent-focus dark:focus:bg-accent-focus dark:active:bg-accent/90">
+                        Return to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @else
     <div class="p-4">
         @if($currentStep == 1)
         <!-- Step 1: Withdrawal Details -->
@@ -214,5 +240,6 @@
         </div>
         @endif
     </div>
+    @endif
 </div>
 
