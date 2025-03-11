@@ -194,7 +194,7 @@ class Withdraw extends Component
     public function confirmWithdraw()
     {
         // Double-check user approval status
-        if (auth()->user()->status !== 'approved') {
+        if (auth()->user()->kyc_status !== 'approved') {
             Log::warning('Unapproved user attempted to confirm withdrawal', [
                 'user_id' => Auth::id(),
                 'status' => auth()->user()->status
