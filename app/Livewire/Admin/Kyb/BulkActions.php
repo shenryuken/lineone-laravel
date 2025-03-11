@@ -81,10 +81,32 @@ class BulkActions extends Component
   public function executeBulkAction()
   {
       if (empty($this->selectedKybs)) {
-          $this->bulkModalOpen = false;
+          $this->dispatch('notify', [
+              'type' => 'error',
+              'message' => 'No applications selected'
+          ]);
           return;
       }
 
+      // Validate action type
+      if (!in_array($this->bulkAction, ['approved', 'rejected', 'kiv'])) {
+          $this->dispatch('notify', [
+              'type' => 'error',
+              'message' => 'Invalid action type'
+          ]);
+          return;
+      }
+
+      // Add validation for required comments
+      if ($this->bulkAction === 'rejected' && empty($this->comment)) {
+          $this->dispatch('notify', [
+              'type' => 'error',
+              'message' => 'Rejection reason is required'
+          ]);
+          return;
+      }
+
+      $this->bulkModalOpen = false;
       $count = 0;
       $status = $this->bulkAction;
 

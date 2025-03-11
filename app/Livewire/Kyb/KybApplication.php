@@ -275,9 +275,16 @@ class KybApplication extends Component
 
     public function submit()
     {
-        $this->validate($this->getValidationRules());
-
         try {
+            $this->validate([
+                'business_registration_doc' => 'required|file|max:5120',
+            ]);
+
+            // Add error handling for file uploads
+            if (!$this->business_registration_doc->isValid()) {
+                throw new \Exception('File upload failed');
+            }
+
             $user = Auth::user();
             $folderPath = 'kyb_documents/' . $user->id;
 
@@ -369,10 +376,8 @@ class KybApplication extends Component
 
         } catch (\Exception $e) {
             Log::error('KYB submission error: ' . $e->getMessage());
-            session()->flash('toast', [
-                'type' => 'error',
-                'message' => 'There was an error submitting your KYB application. Please try again.'
-            ]);
+            session()->flash('error', 'File upload failed. Please try again.');
+            return;
         }
     }
 

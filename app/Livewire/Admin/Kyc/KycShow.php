@@ -125,7 +125,11 @@ class KycShow extends Component
             $this->kyc->save();
 
             // Update user's KYC status
-            $this->kyc->user->update(['kyc_status' => 'approved']);
+           // Update user's KYC status
+            $this->kyc->user->update([
+                'kyc_status' => 'approved',
+                'kyc_approved_at' => now()
+            ]);
 
             $this->showApprovalModal = false;
             $this->dispatch('notify', [

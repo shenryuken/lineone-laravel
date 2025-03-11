@@ -85,10 +85,10 @@ class Transaction extends Model
     {
         switch ($this->type) {
             case self::TYPE_DEPOSIT:
-                return 'arrow-down';
+                return 'arrow-up';
             case self::TYPE_WITHDRAWAL:
             case self::TYPE_TRANSFER:
-                return 'arrow-up';
+                return 'arrow-down';
             case self::TYPE_PAYMENT:
                 return 'credit-card';
             case self::TYPE_REFUND:
