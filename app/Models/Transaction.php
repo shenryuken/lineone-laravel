@@ -124,6 +124,9 @@ class Transaction extends Model
      */
     public function isNegative(): bool
     {
+        // Lock the wallet record to prevent race conditions
+        $wallet = $this->wallet()->lockForUpdate()->first();
+        
         // All transfers and withdrawals should be shown as negative
         return ($this->type === self::TYPE_TRANSFER || $this->type === self::TYPE_WITHDRAWAL ||
                 $this->type === self::TYPE_WITHDRAWAL_FEE || $this->type === self::TYPE_DEPOSIT_FEE

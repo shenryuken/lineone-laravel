@@ -147,7 +147,7 @@ class DepositController extends Controller
             );
 
             DB::commit();
-
+            $amountInCents = $amount * 100;
             // Calculate fee amount (5%)
             $feeAmount = $amountInCents * 0.05;
             $netAmount = $amountInCents - $feeAmount;
@@ -173,10 +173,10 @@ class DepositController extends Controller
 
     private function handleSuccessfulPayment($grossAmount, $feeAmount)
     {
-        $netAmount = $grossAmount - $feeAmount;
+        $netAmount = $grossAmount - ($feeAmount/100);
         return redirect()->route('dashboard')->with('toast', [
             'type' => 'success',
-            'message' => "Deposit of MYR $grossAmount was successful! (Fee: MYR $feeAmount, Net amount: MYR $netAmount)"
+            'message' => "Deposit of MYR $grossAmount was successful! (Fee: MYR " . $feeAmount/100 . ", Net amount: MYR $netAmount)"
         ]);
     }
 

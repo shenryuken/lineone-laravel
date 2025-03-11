@@ -41,7 +41,8 @@ class WalletService
                 'currency' => $currency,
                 'balance' => (int)($initialBalance * 100), // Convert to cents
                 'is_default' => $isDefault,
-                'is_verify' => false
+                'is_verify' => false,
+                'version' => 1 // CHANGE: Added version for optimistic locking
             ]);
 
             Log::info('Wallet created successfully', [
@@ -163,7 +164,10 @@ class WalletService
             'description' => $description
         ]);
 
-        return DB::transaction(function () use ($wallet, $amount, $fee, $bankDetails, $description) {
+        return DB::transaction(function () use ($wallet, $amount, $fee, $bankDetails, $description)
+        {
+            // CHANGE: Lock the wallet for update
+            $wallet = $wallet->lockForUpdate()->first();
             // Convert amount to cents
             $amountCents = (int)($amount * 100);
             $feeCents = (int)($fee * 100);
@@ -228,6 +232,9 @@ class WalletService
             // Update wallet balance
             $wallet->decrement('balance', $totalDeductionCents);
 
+            // CHANGE: Increment version for optimistic locking
+            $wallet->increment('version');
+
             // Create withdrawal record
             $withdrawal = Withdrawal::create([
                 'wallet_id' => $wallet->id,
@@ -268,6 +275,14 @@ class WalletService
         float $amount,
         string $description = 'Wallet Transfer'
     ): array {
+        // Add this log statement at the beginning of the method
+        Log::info('Transfer method called with wallets', [
+            'from_wallet_id' => $fromWallet->id,
+            'to_wallet_id' => $toWallet->id,
+            'from_wallet_user_id' => $fromWallet->user_id,
+            'to_wallet_user_id' => $toWallet->user_id,
+        ]);
+
         Log::info('Processing transfer', [
             'from_wallet_id' => $fromWallet->id,
             'to_wallet_id' => $toWallet->id,
@@ -275,7 +290,15 @@ class WalletService
             'description' => $description
         ]);
 
-        return DB::transaction(function () use ($fromWallet, $toWallet, $amount, $description) {
+        return DB::transaction(function () use ($fromWallet, $toWallet, $amount, $description)
+        {
+            // CHANGE: Lock both wallets for update and refresh their data
+            $fromWallet = Wallet::lockForUpdate()->find($fromWallet->id);
+            $toWallet = Wallet::lockForUpdate()->find($toWallet->id);
+
+            if (!$fromWallet || !$toWallet) {
+                throw new \Exception("One or both wallets not found");
+            }
             // Convert amount to cents
             $amountCents = (int)($amount * 100);
 
@@ -341,6 +364,10 @@ class WalletService
             $fromWallet->decrement('balance', $amountCents);
             $toWallet->increment('balance', $amountCents);
 
+            // CHANGE: Increment version for optimistic locking
+            $fromWallet->increment('version');
+            $toWallet->increment('version');
+
             Log::info('Transfer completed successfully', [
                 'from_wallet_id' => $fromWallet->id,
                 'to_wallet_id' => $toWallet->id,
@@ -368,13 +395,21 @@ class WalletService
     ): array {
         Log::info('Processing deposit', [
             'wallet_id' => $wallet->id,
+            'user_id' => $wallet->user_id,
             'amount' => $amount,
             'description' => $description,
             'provider' => $provider,
             'reference_id' => $referenceId
         ]);
 
-        return DB::transaction(function () use ($wallet, $amount, $description, $provider, $referenceId) {
+        return DB::transaction(function () use ($wallet, $amount, $description, $provider, $referenceId)
+        {
+            $wallet = Wallet::lockForUpdate()->find($wallet->id);
+
+            if (!$wallet) {
+                throw new \Exception("Wallet not found");
+            }
+
             // Convert amount to cents
             $amountCents = (int)($amount * 100);
 
@@ -437,8 +472,12 @@ class WalletService
             // Update wallet balance with net amount
             $wallet->increment('balance', $netAmountCents);
 
+            // CHANGE: Increment version for optimistic locking
+            $wallet->increment('version');
+
             Log::info('Deposit completed successfully', [
                 'wallet_id' => $wallet->id,
+                'user_id' => $wallet->user_id,
                 'deposit_transaction_id' => $depositTransaction->id,
                 'fee_transaction_id' => $feeTransaction->id,
                 'gross_amount' => $amount,
