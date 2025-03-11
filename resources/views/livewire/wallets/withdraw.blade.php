@@ -11,7 +11,7 @@
     </div>
     @endif
 
-    @if(auth()->user()->status !== 'approved')
+    @if(auth()->user()->kyc_status !== 'approved')
     <div class="card p-5">
         <div class="flex justify-center">
             <div class="max-w-lg text-center">
@@ -28,7 +28,7 @@
                     enable withdrawals.
                 </p>
                 <div class="mt-6">
-                    <a href="{{ route('user.dashboard') }}"
+                    <a href="{{ route('dashboard') }}"
                         class="btn bg-primary font-medium text-white hover:bg-primary-focus focus:bg-primary-focus active:bg-primary-focus/90 dark:bg-accent dark:hover:bg-accent-focus dark:focus:bg-accent-focus dark:active:bg-accent/90">
                         Return to Dashboard
                     </a>

@@ -83,16 +83,16 @@ class Withdraw extends Component
     public function mount($wallet = null)
     {
         // Check if user is approved for withdrawals
-        if (auth()->user()->status !== 'approved') {
+        if (auth()->user()->kyc_status !== 'approved') {
             // Log the attempt
             Log::warning('Unapproved user attempted withdrawal', [
                 'user_id' => Auth::id(),
-                'status' => auth()->user()->status
+                'status' => auth()->user()->kyc_status
             ]);
 
             // Redirect with message
             session()->flash('error', 'Withdrawals are only available for approved accounts. Please complete your verification process to enable withdrawals.');
-            return redirect()->route('user.dashboard');
+            return redirect()->route('dashboard');
         }
 
         // Load user's default wallet or the provided wallet
@@ -197,14 +197,14 @@ class Withdraw extends Component
         if (auth()->user()->kyc_status !== 'approved') {
             Log::warning('Unapproved user attempted to confirm withdrawal', [
                 'user_id' => Auth::id(),
-                'status' => auth()->user()->status
+                'status' => auth()->user()->kyc_status
             ]);
 
             $this->isSuccess = false;
             $this->resultMessage = 'Withdrawal failed. Your account is not approved for withdrawals.';
             $this->resultDetails = [
                 'Error' => 'Account verification required',
-                'Status' => auth()->user()->status,
+                'Status' => auth()->user()->kyc_status,
                 'Required Status' => 'approved'
             ];
 

@@ -167,7 +167,7 @@ class WalletService
         return DB::transaction(function () use ($wallet, $amount, $fee, $bankDetails, $description)
         {
             // CHANGE: Lock the wallet for update
-            $wallet = $wallet->lockForUpdate()->first();
+            $wallet = Wallet::lockForUpdate()->find($wallet->id);
             // Convert amount to cents
             $amountCents = (int)($amount * 100);
             $feeCents = (int)($fee * 100);
