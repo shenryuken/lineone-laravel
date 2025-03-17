@@ -74,62 +74,77 @@ class DepositController extends Controller
 
     private function handleRediPayCallback(Request $request, Wallet $wallet)
     {
-        $rediPay = new RediPayService();
-        $paymentId = $request->input('payment_id');
-        $status = $request->input('status');
-        $referenceId = $request->input('reference_no') ?? $paymentId;
+        // According to RediPay docs, they send a POST request to the callback URL
+        $trxNo = $request->input('trx_no');
+        $billId = $request->input('bill_id');
+        $amount = $request->input('amount');
+        $referenceNo = $request->input('reference_no');
 
         Log::info('RediPay callback details', [
-            'payment_id' => $paymentId,
-            'status' => $status,
-            'reference_id' => $referenceId,
+            'trx_no' => $trxNo,
+            'bill_id' => $billId,
+            'amount' => $amount,
+            'reference_no' => $referenceNo,
             'all_data' => $request->all()
         ]);
 
         try {
-            // If status is already provided in the callback
-            if ($status === 'paid') {
-                $amount = (float)$request->input('amount');
-                return $this->processDeposit($wallet, $amount, 'redipay', $referenceId);
+            // Process the payment if we have the necessary information
+            if ($amount) {
+                // Use the transaction number as reference if reference_no is not provided
+                $referenceId = $referenceNo ?: ($trxNo ?: $billId);
+
+                // Process the deposit
+                $this->processDeposit($wallet, (float)$amount, 'redipay', $referenceId);
+
+                // Return a success response for the callback
+                return response()->json(['status' => 'success']);
             }
 
-            // If payment_id is missing, we can't check the status
-            if (!$paymentId) {
-                Log::error('RediPay callback missing payment_id', [
-                    'request_data' => $request->all()
-                ]);
-                return $this->handleFailedPayment('Invalid payment data received');
-            }
+            // If we don't have the amount, try to get payment details from the API
+            if ($trxNo || $billId) {
+                $rediPay = new RediPayService();
+                $paymentId = $trxNo ?: $billId;
 
-            // Otherwise, check the status from the API
-            try {
-                $paymentStatus = $rediPay->getPaymentStatus($paymentId);
+                try {
+                    $paymentStatus = $rediPay->getPaymentStatus($paymentId);
 
-                Log::info('RediPay payment status', ['status' => $paymentStatus]);
+                    Log::info('RediPay payment status', ['status' => $paymentStatus]);
 
-                if (isset($paymentStatus['status']) && $paymentStatus['status'] === 'paid') {
-                    $amount = (float)$paymentStatus['amount'];
-                    return $this->processDeposit($wallet, $amount, 'redipay', $referenceId);
+                    if (isset($paymentStatus['status']) && $paymentStatus['status'] === 'paid') {
+                        $amount = (float)$paymentStatus['amount'];
+                        $referenceId = $referenceNo ?: $paymentId;
+
+                        // Process the deposit
+                        $this->processDeposit($wallet, $amount, 'redipay', $referenceId);
+
+                        // Return a success response for the callback
+                        return response()->json(['status' => 'success']);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('RediPay error checking payment status', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
                 }
-
-                Log::warning('RediPay deposit not paid', [
-                    'wallet' => $wallet->id,
-                    'status' => $paymentStatus['status'] ?? 'unknown'
-                ]);
-                return $this->handleFailedPayment('Payment was not completed');
-            } catch (\Exception $e) {
-                Log::error('RediPay error checking payment status', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                return $this->handleFailedPayment('Error verifying payment status');
             }
+
+            Log::warning('RediPay deposit failed or insufficient data', [
+                'wallet' => $wallet->id,
+                'request_data' => $request->all()
+            ]);
+
+            // Return a response for the callback
+            return response()->json(['status' => 'error', 'message' => 'Insufficient payment data']);
+
         } catch (\Exception $e) {
             Log::error('RediPay error processing callback', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return $this->handleFailedPayment('Error processing payment: ' . $e->getMessage());
+
+            // Return an error response for the callback
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
 
@@ -152,7 +167,17 @@ class DepositController extends Controller
                     'reference_id' => $referenceId
                 ]);
                 DB::commit();
-                return $this->handleSuccessfulPayment($amount, $amount * 0.05);
+
+                // For API callbacks, return JSON
+                if (request()->expectsJson() || request()->ajax() || request()->wantsJson()) {
+                    return response()->json(['status' => 'success', 'message' => 'Payment already processed']);
+                }
+
+                // For browser redirects, redirect to dashboard
+                return redirect()->route('dashboard')->with('toast', [
+                    'type' => 'success',
+                    'message' => "Your payment has been processed successfully!"
+                ]);
             }
 
             // Use wallet service to process the deposit
@@ -179,20 +204,54 @@ class DepositController extends Controller
                 'reference_id' => $referenceId
             ]);
 
-            return $this->handleSuccessfulPayment($amount, $feeAmount);
+            // For API callbacks, return JSON
+            if (request()->expectsJson() || request()->ajax() || request()->wantsJson()) {
+                return response()->json(['status' => 'success', 'message' => 'Payment processed successfully']);
+            }
+
+            // For browser redirects, redirect to dashboard
+            return redirect()->route('dashboard')->with('toast', [
+                'type' => 'success',
+                'message' => "Deposit of MYR " . number_format($amount, 2) . " was successful! (Fee: MYR " . number_format($feeAmount, 2) . ", Net amount: MYR " . number_format($netAmount, 2) . ")"
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error processing deposit', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return $this->handleFailedPayment('Error processing deposit: ' . $e->getMessage());
+
+            // For API callbacks, return JSON
+            if (request()->expectsJson() || request()->ajax() || request()->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => 'Error processing deposit: ' . $e->getMessage()]);
+            }
+
+            // For browser redirects, redirect to dashboard
+            return redirect()->route('dashboard')->with('toast', [
+                'type' => 'error',
+                'message' => 'Error processing deposit: ' . $e->getMessage()
+            ]);
         }
     }
 
     private function handleSuccessfulPayment($grossAmount, $feeAmount)
     {
         $netAmount = $grossAmount - $feeAmount;
+
+        // For API callbacks, return JSON
+        if (request()->expectsJson() || request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Payment processed successfully',
+                'data' => [
+                    'gross_amount' => $grossAmount,
+                    'fee_amount' => $feeAmount,
+                    'net_amount' => $netAmount
+                ]
+            ]);
+        }
+
+        // For browser redirects, redirect to dashboard
         return redirect()->route('dashboard')->with('toast', [
             'type' => 'success',
             'message' => "Deposit of MYR " . number_format($grossAmount, 2) . " was successful! (Fee: MYR " . number_format($feeAmount, 2) . ", Net amount: MYR " . number_format($netAmount, 2) . ")"
@@ -201,6 +260,15 @@ class DepositController extends Controller
 
     private function handleFailedPayment($message)
     {
+        // For API callbacks, return JSON
+        if (request()->expectsJson() || request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $message
+            ]);
+        }
+
+        // For browser redirects, redirect to dashboard
         return redirect()->route('dashboard')->with('toast', [
             'type' => 'error',
             'message' => $message

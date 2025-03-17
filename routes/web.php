@@ -51,8 +51,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
     })->name('dashboard');
 
-    Route::get('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])->name('deposit.callback');
-    Route::post('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback']);
+    // Route::get('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])->name('deposit.callback');
+    // Route::post('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback']);
+    // Deposit callback routes - support both GET and POST methods
+    Route::match(['get', 'post'], '/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])
+        ->name('deposit.callback');
 
 
     Route::get('/transactions/history', function () {

@@ -172,12 +172,16 @@ class Deposit extends Component
             } elseif ($this->paymentMethod === 'redipay') {
                 try {
                     $rediPay = new RediPayService();
+
+                    // According to RediPay docs, they need a callback URL for POST notifications
+                    // and a redirect URL for browser redirects after payment
                     $paymentData = [
                         'amount' => number_format($this->amount, 2, '.', ''),
                         'email' => $user->email,
                         'item' => 'Wallet Deposit',
                         'name' => $user->name,
                         'callback_url' => route('deposit.callback', ['wallet' => $this->wallet->id, 'method' => 'redipay']),
+                        'redirect_url' => route('dashboard'), // Direct redirect to dashboard after payment
                         'reference_no' => $referenceNo,
                     ];
 

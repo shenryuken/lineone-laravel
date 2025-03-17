@@ -89,83 +89,93 @@ class RediPayService
             // Get access token
             $token = $this->fetchAccessToken();
 
+            // Make sure we have the required fields
+            if (!isset($paymentData['callback_url'])) {
+                throw new \Exception('callback_url is required for RediPay payments');
+            }
+
+            // Add redirect_url if not provided
+            if (!isset($paymentData['redirect_url'])) {
+                $paymentData['redirect_url'] = route('dashboard');
+            }
+
             $data = array_merge($paymentData, [
                 'client_id' => $this->clientId,
             ]);
 
-        // Use the correct endpoint from the documentation
-        $endpoint = "{$this->baseUrl}/api/payments/payment";
+            // Use the correct endpoint from the documentation
+            $endpoint = "{$this->baseUrl}/api/payments/payment";
 
-        Log::info('Attempting RediPay payment with endpoint', [
-            'endpoint' => $endpoint,
-            'data' => $data
-        ]);
+            Log::info('Attempting RediPay payment with endpoint', [
+                'endpoint' => $endpoint,
+                'data' => $data
+            ]);
 
-        // Make the API request with the token
-        $response = Http::withToken($token)
-            ->withHeaders([
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ])
-            ->post($endpoint, $data);
+            // Make the API request with the token
+            $response = Http::withToken($token)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->post($endpoint, $data);
 
-        if ($response->successful()) {
-            Log::info('RediPay payment created successfully', ['response' => $response->json()]);
-            return $response->json();
+            if ($response->successful()) {
+                Log::info('RediPay payment created successfully', ['response' => $response->json()]);
+                return $response->json();
+            }
+
+            Log::error('RediPay createPayment failed', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            throw new \Exception('Failed to create payment: ' . $response->body());
+        } catch (\Exception $e) {
+            Log::error('RediPay payment creation exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
         }
-
-        Log::error('RediPay createPayment failed', [
-            'status' => $response->status(),
-            'body' => $response->body()
-        ]);
-
-        throw new \Exception('Failed to create payment: ' . $response->body());
-    } catch (\Exception $e) {
-        Log::error('RediPay payment creation exception', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        throw $e;
     }
-}
 
-// Also update the getPaymentStatus method to use a consistent endpoint pattern
-public function getPaymentStatus($paymentId)
-{
-    Log::info('Getting RediPay payment status', ['paymentId' => $paymentId]);
+    // Update the getPaymentStatus method to use a consistent endpoint pattern
+    public function getPaymentStatus($paymentId)
+    {
+        Log::info('Getting RediPay payment status', ['paymentId' => $paymentId]);
 
-    try {
-        // Get access token
-        $token = $this->fetchAccessToken();
+        try {
+            // Get access token
+            $token = $this->fetchAccessToken();
 
-        // Use a consistent endpoint pattern
-        $endpoint = "{$this->baseUrl}/api/payments/{$paymentId}";
+            // Use a consistent endpoint pattern
+            $endpoint = "{$this->baseUrl}/api/payments/{$paymentId}";
 
-        $response = Http::withToken($token)
-            ->withHeaders([
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ])
-            ->get($endpoint);
+            $response = Http::withToken($token)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->get($endpoint);
 
-        if ($response->successful()) {
-            Log::info('RediPay payment status retrieved', ['status' => $response->json()]);
-            return $response->json();
+            if ($response->successful()) {
+                Log::info('RediPay payment status retrieved', ['status' => $response->json()]);
+                return $response->json();
+            }
+
+            Log::error('RediPay getPaymentStatus failed', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            throw new \Exception('Failed to get payment status: ' . $response->body());
+        } catch (\Exception $e) {
+            Log::error('RediPay payment status exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
         }
-
-        Log::error('RediPay getPaymentStatus failed', [
-            'status' => $response->status(),
-            'body' => $response->body()
-        ]);
-
-        throw new \Exception('Failed to get payment status: ' . $response->body());
-    } catch (\Exception $e) {
-        Log::error('RediPay payment status exception', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        throw $e;
     }
-}
 }
 
