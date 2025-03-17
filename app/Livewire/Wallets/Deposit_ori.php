@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Wallet;
 use App\Services\ToyyibPayService;
 use App\Services\RediPayService;
+use App\Services\WalletService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +15,7 @@ class Deposit extends Component
 {
     // Form Fields
     public $amount = '';
-    public $paymentMethod = 'stripe'; // Default to Stripe for testing
+    public $paymentMethod = 'toyyibpay';
     public $wallet_id = null;
     public $wallet = null;
 
@@ -35,9 +36,21 @@ class Deposit extends Component
     public $currentStep = 1;
     public $paymentUrl = null;
 
-    protected $listeners = [
-        'walletUpdated' => '$refresh'
+    protected function rules()
+    {
+        return [
+            'amount' => 'required|numeric|min:10',
+            'paymentMethod' => 'required|in:toyyibpay,redipay',
+            'wallet_id' => 'required|exists:wallets,id'
+        ];
+    }
+
+    protected $messages = [
+        'amount.required' => 'Please enter an amount to deposit.',
+        'amount.min' => 'Minimum deposit amount is 10.',
     ];
+
+    protected $listeners = ['walletUpdated' => '$refresh'];
 
     public function mount($wallet = null)
     {
@@ -92,20 +105,6 @@ class Deposit extends Component
             'wallet_id' => $this->wallet_id
         ]);
     }
-
-    protected function rules()
-    {
-        return [
-            'amount' => 'required|numeric|min:10',
-            'paymentMethod' => 'required|in:toyyibpay,redipay,stripe',
-            'wallet_id' => 'required|exists:wallets,id'
-        ];
-    }
-
-    protected $messages = [
-        'amount.required' => 'Please enter an amount to deposit.',
-        'amount.min' => 'Minimum deposit amount is 10.',
-    ];
 
     public function initiateDeposit()
     {
@@ -170,32 +169,25 @@ class Deposit extends Component
                     return;
                 }
             } elseif ($this->paymentMethod === 'redipay') {
+                $rediPay = new RediPayService();
+                $paymentData = [
+                    'amount' => number_format($this->amount, 2, '.', ''),
+                    'email' => $user->email,
+                    'item' => 'Wallet Deposit',
+                    'name' => $user->name,
+                    'callback_url' => route('deposit.callback', ['wallet' => $this->wallet->id, 'method' => 'redipay']),
+                    'reference_no' => $referenceNo,
+                ];
+
                 try {
-                    $rediPay = new RediPayService();
-                    $paymentData = [
-                        'amount' => number_format($this->amount, 2, '.', ''),
-                        'email' => $user->email,
-                        'item' => 'Wallet Deposit',
-                        'name' => $user->name,
-                        'callback_url' => route('deposit.callback', ['wallet' => $this->wallet->id, 'method' => 'redipay']),
-                        'reference_no' => $referenceNo,
-                    ];
-
-                    Log::info('Attempting RediPay payment creation with authentication', $paymentData);
-
                     $response = $rediPay->createPayment($paymentData);
+                    $this->paymentUrl = $response['payment_url'] ?? null;
 
-                    if (!isset($response['payment_url'])) {
-                        Log::error('RediPay: Invalid response format', ['response' => $response]);
-                        session()->flash('toast', [
-                            'type' => 'error',
-                            'message' => 'Payment gateway error: Missing payment URL'
-                        ]);
-                        return redirect()->route('dashboard');
+                    if (!$this->paymentUrl) {
+                        Log::error('RediPay: Missing payment URL in response', ['response' => $response]);
+                        $this->showErrorResult('Failed to create payment. Please try again.');
+                        return;
                     }
-
-                    $this->paymentUrl = $response['payment_url'];
-                    Log::info('RediPay payment URL generated', ['url' => $this->paymentUrl]);
 
                     return redirect()->to($this->paymentUrl);
                 } catch (\Exception $e) {
@@ -203,19 +195,9 @@ class Deposit extends Component
                         'error' => $e->getMessage(),
                         'trace' => $e->getTraceAsString()
                     ]);
-
-                    session()->flash('toast', [
-                        'type' => 'error',
-                        'message' => 'Payment gateway error: ' . $e->getMessage()
-                    ]);
-                    return redirect()->route('dashboard');
+                    $this->showErrorResult('Failed to create payment. Please try again.');
+                    return;
                 }
-            } elseif ($this->paymentMethod === 'stripe') {
-                // For Stripe, we'll redirect to our dedicated controller
-                return redirect()->route('stripe.checkout', [
-                    'amount' => $this->amount,
-                    'wallet_id' => $this->wallet_id
-                ]);
             }
         } catch (\Exception $e) {
             Log::error('Payment initiation failed', [
@@ -233,7 +215,7 @@ class Deposit extends Component
         $this->resultMessage = $message;
         $this->resultDetails = [];
         $this->showResult = true;
-        $this->currentStep = 4;
+        $this->currentStep = 3;
 
         session()->flash('error', $message);
     }

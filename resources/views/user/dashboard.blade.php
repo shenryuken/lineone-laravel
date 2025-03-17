@@ -12,6 +12,50 @@
 <x-app-layout-sideblock title="Crypto Dashboard" is-header-blur="true">
     <!-- Main Content Wrapper -->
     <main class="main-content w-full px-[var(--margin-x)] pb-8">
+        <!-- Payment Status Notifications -->
+        @if(session('toast'))
+        <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show"
+            class="fixed top-4 right-4 z-50 max-w-sm rounded-lg px-4 py-3 shadow-lg transition-all duration-300 ease-in-out
+                    {{ session('toast.type') === 'success' ? 'bg-emerald-500' : (session('toast.type') === 'warning' ? 'bg-amber-500' : 'bg-red-500') }} text-white">
+            <div class="flex items-center space-x-3">
+                @if(session('toast.type') === 'success')
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                @elseif(session('toast.type') === 'warning')
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                @else
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+                @endif
+                <div>
+                    <p class="font-medium">
+                        {{ session('toast.type') === 'success' ? 'Success' : (session('toast.type') === 'warning' ? 'Warning' :
+                        'Error') }}
+                    </p>
+                    <p class="text-sm">{{ session('toast.message') }}</p>
+                </div>
+            </div>
+            <button @click="show = false" class="absolute top-2 right-2 rounded-full p-1 hover:bg-white/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        @endif
         <div class="mt-4 sm:mt-5 md:mt-6">
             <!-- Dashboard Header -->
             <div
@@ -24,7 +68,7 @@
                         Here's what's happening with your wallet today
                     </p>
                 </div>
-                <div class="flex space-x-2">
+                {{-- <div class="flex space-x-2">
                     <button
                         class="btn h-9 rounded-full bg-primary/10 px-4 text-primary hover:bg-primary/20 focus:bg-primary/20 active:bg-primary/30 dark:bg-accent-light/10 dark:text-accent-light dark:hover:bg-accent-light/20 dark:focus:bg-accent-light/20 dark:active:bg-accent-light/30">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24"
@@ -72,11 +116,11 @@
                             </a>
                         </div>
                     </div>
-                </div>
+                </div> --}}
             </div>
 
             <!-- Dashboard Stats Cards -->
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-5">
+            {{-- <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-5">
                 <!-- Total Balance Card -->
                 <div
                     class="card p-4 sm:p-5 lg:p-6 bg-gradient-to-br from-purple-500 to-indigo-600 dark:from-purple-600 dark:to-indigo-700">
@@ -178,10 +222,10 @@
                             class="text-xs+ text-primary hover:text-primary-focus dark:text-accent-light dark:hover:text-accent">History</a>
                     </div>
                 </div>
-            </div>
+            </div> --}}
 
             <!-- Main Dashboard Content -->
-            <div class="grid grid-cols-12 gap-4 sm:gap-5 lg:gap-6 mt-5">
+            {{-- <div class="grid grid-cols-12 gap-4 sm:gap-5 lg:gap-6 mt-5">
                 <!-- Left Column - Wallet & Activity -->
                 <div class="col-span-12 lg:col-span-8">
                     <!-- Wallet Cards -->
@@ -611,7 +655,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> --}}
 
             <!-- Livewire Component Integration -->
             <div class="mt-5">

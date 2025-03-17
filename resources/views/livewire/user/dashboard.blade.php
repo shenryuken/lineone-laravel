@@ -580,7 +580,7 @@
             <div class="card p-4 sm:p-5">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-medium tracking-wide text-slate-700 dark:text-navy-100">
-                        Transaction History
+                        Recent Transactions
                     </h2>
                     <div class="flex space-x-2">
                         <div class="flex items-center space-x-2">
@@ -599,6 +599,17 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="mt-4">
+        @if(session('toast'))
+        <div class="fixed top-4 right-4 z-50 max-w-md">
+            <x-payment-notification type="{{ session('toast.type') }}" message="{{ session('toast.message') }}"
+                timeout="5000" />
+        </div>
+        @endif
+
+        <!-- Rest of your dashboard content -->
     </div>
 
     <!-- Transfer Modal -->

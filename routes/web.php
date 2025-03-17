@@ -4,6 +4,8 @@
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\KycController as AdminKycController;
 use App\Http\Controllers\DepositController;
+use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\StripePaymentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,6 +30,16 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register'])->name('register');
 });
 
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
+// Stripe Payment Routes
+Route::middleware(['auth'])->group(function () {
+    Route::post('/stripe/checkout', [StripePaymentController::class, 'checkout'])->name('stripe.checkout');
+    Route::get('/stripe/success', [StripePaymentController::class, 'success'])->name('stripe.success');
+    Route::get('/stripe/cancel', [StripePaymentController::class, 'cancel'])->name('stripe.cancel');
+});
+
+
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         if (auth()->user()->hasRole('admin')) {
@@ -41,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])->name('deposit.callback');
     Route::post('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback']);
+
 
     Route::get('/transactions/history', function () {
         return view('transactions.history');

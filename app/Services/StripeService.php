@@ -3,8 +3,6 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\PaymentMethod;
-use App\Models\Transaction;
 use Illuminate\Support\Facades\Log;
 use Stripe\Exception\ApiErrorException;
 use Stripe\StripeClient;
@@ -15,6 +13,7 @@ class StripeService
 
     public function __construct()
     {
+        // This will use test keys when in sandbox mode
         $this->stripe = new StripeClient(config('services.stripe.secret'));
     }
 
@@ -56,9 +55,12 @@ class StripeService
         try {
             $customerId = $this->createCustomer($user);
 
+            // Convert to cents for Stripe
+            $amountInCents = (int)($amount * 100);
+
             $paymentIntent = $this->stripe->paymentIntents->create([
-                'amount' => $amount * 100, // Convert to cents
-                'currency' => $currency,
+                'amount' => $amountInCents, // Already in cents
+                'currency' => strtolower($currency),
                 'customer' => $customerId,
                 'metadata' => [
                     'user_id' => $user->id
@@ -80,89 +82,43 @@ class StripeService
     }
 
     /**
-     * Create a setup intent for saving payment methods
+     * Retrieve a payment intent by ID
      */
-    public function createSetupIntent(User $user)
+    public function retrievePaymentIntent(string $paymentIntentId)
     {
         try {
-            $customerId = $this->createCustomer($user);
-
-            $setupIntent = $this->stripe->setupIntents->create([
-                'customer' => $customerId,
-                'payment_method_types' => ['card'],
-                'metadata' => [
-                    'user_id' => $user->id
-                ]
-            ]);
-
-            return $setupIntent;
+            return $this->stripe->paymentIntents->retrieve($paymentIntentId);
         } catch (ApiErrorException $e) {
-            Log::error('Stripe setup intent creation failed', [
+            Log::error('Stripe retrieve payment intent failed', [
                 'error' => $e->getMessage(),
-                'user_id' => $user->id
+                'payment_intent_id' => $paymentIntentId
             ]);
             throw $e;
         }
     }
 
     /**
-     * Get customer payment methods
-     */
-    public function getPaymentMethods(User $user)
-    {
-        try {
-            if (!$user->stripe_customer_id) {
-                return [];
-            }
-
-            $paymentMethods = $this->stripe->paymentMethods->all([
-                'customer' => $user->stripe_customer_id,
-                'type' => 'card',
-            ]);
-
-            return $paymentMethods->data;
-        } catch (ApiErrorException $e) {
-            Log::error('Stripe get payment methods failed', [
-                'error' => $e->getMessage(),
-                'user_id' => $user->id
-            ]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Detach a payment method from customer
-     */
-    public function detachPaymentMethod(string $paymentMethodId)
-    {
-        try {
-            return $this->stripe->paymentMethods->detach($paymentMethodId);
-        } catch (ApiErrorException $e) {
-            Log::error('Stripe detach payment method failed', [
-                'error' => $e->getMessage(),
-                'payment_method_id' => $paymentMethodId
-            ]);
-            throw $e;
-        }
-    }
-
-    /**
-     * Process a payment
+     * Process a payment with an existing payment method
      */
     public function processPayment(User $user, float $amount, string $paymentMethodId, string $currency = 'myr')
     {
         try {
             $customerId = $this->createCustomer($user);
 
+            // Convert to cents for Stripe
+            $amountInCents = (int)($amount * 100);
+
+            // Create a payment intent
             $paymentIntent = $this->stripe->paymentIntents->create([
-                'amount' => $amount * 100, // Convert to cents
-                'currency' => $currency,
+                'amount' => $amountInCents, // Already in cents
+                'currency' => strtolower($currency),
                 'customer' => $customerId,
                 'payment_method' => $paymentMethodId,
-                'confirm' => true,
+                'confirm' => true, // Confirm the payment immediately
                 'metadata' => [
                     'user_id' => $user->id
-                ]
+                ],
+                'return_url' => route('user.dashboard'), // Redirect URL after 3D Secure authentication
             ]);
 
             return $paymentIntent;

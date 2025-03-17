@@ -58,7 +58,9 @@
                         <span>Deposit Amount:</span>
                         <span>{{ $wallet->currency }} {{ number_format($amount, 2) }}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex justify  2) }}</span>
+                            </div>
+                            <div class=" flex justify-between">
                         <span>Processing Fee (5%):</span>
                         <span class="text-error">- {{ $wallet->currency }} {{ number_format($fee_amount, 2) }}</span>
                     </div>
@@ -74,7 +76,7 @@
                 <label class="block text-sm font-medium text-slate-700 dark:text-navy-100">
                     Payment Method
                 </label>
-                <div class="mt-1.5 grid grid-cols-3 gap-2">
+                <div class="mt-1.5 grid grid-cols-2 gap-2">
                     <label
                         class="flex cursor-pointer items-center rounded-lg border border-slate-300 p-3 hover:border-slate-400 dark:border-navy-450 dark:hover:border-navy-400">
                         <input type="radio" wire:model="paymentMethod" value="toyyibpay"
@@ -86,12 +88,6 @@
                         <input type="radio" wire:model="paymentMethod" value="redipay"
                             class="form-radio mr-2 border-slate-400/70 checked:border-primary checked:bg-primary hover:border-primary focus:border-primary dark:border-navy-400 dark:checked:border-accent dark:checked:bg-accent dark:hover:border-accent dark:focus:border-accent">
                         <span>RediPay</span>
-                    </label>
-                    <label
-                        class="flex cursor-pointer items-center rounded-lg border border-slate-300 p-3 hover:border-slate-400 dark:border-navy-450 dark:hover:border-navy-400">
-                        <input type="radio" wire:model="paymentMethod" value="stripe"
-                            class="form-radio mr-2 border-slate-400/70 checked:border-primary checked:bg-primary hover:border-primary focus:border-primary dark:border-navy-400 dark:checked:border-accent dark:checked:bg-accent dark:hover:border-accent dark:focus:border-accent">
-                        <span>Stripe</span>
                     </label>
                 </div>
                 @error('paymentMethod') <span class="text-error text-sm">{{ $message }}</span> @enderror
@@ -138,27 +134,14 @@
                     class="btn border border-slate-300 font-medium text-slate-800 hover:bg-slate-150 focus:bg-slate-150 active:bg-slate-150/80 dark:border-navy-450 dark:text-navy-50 dark:hover:bg-navy-500 dark:focus:bg-navy-500 dark:active:bg-navy-500/90">
                     Back
                 </button>
-
-                @if($paymentMethod === 'stripe')
-                <form action="{{ route('stripe.checkout') }}" method="POST">
-                    @csrf
-                    <input type="hidden" name="amount" value="{{ $amount }}">
-                    <input type="hidden" name="wallet_id" value="{{ $wallet_id }}">
-                    <button type="submit"
-                        class="btn bg-primary font-medium text-white hover:bg-primary-focus focus:bg-primary-focus active:bg-primary-focus/90 dark:bg-accent dark:hover:bg-accent-focus dark:focus:bg-accent-focus dark:active:bg-accent/90">
-                        Proceed to Payment
-                    </button>
-                </form>
-                @else
                 <button wire:click="initiateDeposit"
                     class="btn bg-primary font-medium text-white hover:bg-primary-focus focus:bg-primary-focus active:bg-primary-focus/90 dark:bg-accent dark:hover:bg-accent-focus dark:focus:bg-accent-focus dark:active:bg-accent/90">
                     Proceed to Payment
                 </button>
-                @endif
             </div>
         </div>
-        @elseif($currentStep == 4)
-        <!-- Step 4: Success or Error Result -->
+        @elseif($currentStep == 3)
+        <!-- Step 3: Success or Error Result -->
         <div class="text-center">
             @if($isSuccess)
             <div class="inline-flex size-16 items-center justify-center rounded-full bg-success/10 text-success mb-4">

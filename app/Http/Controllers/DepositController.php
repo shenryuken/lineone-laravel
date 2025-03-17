@@ -89,22 +89,41 @@ class DepositController extends Controller
         try {
             // If status is already provided in the callback
             if ($status === 'paid') {
-                $amount = (int)($request->input('amount') * 100);
+                $amount = (float)$request->input('amount');
                 return $this->processDeposit($wallet, $amount, 'redipay', $referenceId);
+            }
+
+            // If payment_id is missing, we can't check the status
+            if (!$paymentId) {
+                Log::error('RediPay callback missing payment_id', [
+                    'request_data' => $request->all()
+                ]);
+                return $this->handleFailedPayment('Invalid payment data received');
             }
 
             // Otherwise, check the status from the API
-            $paymentStatus = $rediPay->getPaymentStatus($paymentId);
+            try {
+                $paymentStatus = $rediPay->getPaymentStatus($paymentId);
 
-            Log::info('RediPay payment status', ['status' => $paymentStatus]);
+                Log::info('RediPay payment status', ['status' => $paymentStatus]);
 
-            if ($paymentStatus['status'] === 'paid') {
-                $amount = (int)($paymentStatus['amount'] * 100);
-                return $this->processDeposit($wallet, $amount, 'redipay', $referenceId);
+                if (isset($paymentStatus['status']) && $paymentStatus['status'] === 'paid') {
+                    $amount = (float)$paymentStatus['amount'];
+                    return $this->processDeposit($wallet, $amount, 'redipay', $referenceId);
+                }
+
+                Log::warning('RediPay deposit not paid', [
+                    'wallet' => $wallet->id,
+                    'status' => $paymentStatus['status'] ?? 'unknown'
+                ]);
+                return $this->handleFailedPayment('Payment was not completed');
+            } catch (\Exception $e) {
+                Log::error('RediPay error checking payment status', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return $this->handleFailedPayment('Error verifying payment status');
             }
-
-            Log::warning('RediPay deposit failed', ['wallet' => $wallet->id, 'status' => $paymentStatus]);
-            return $this->handleFailedPayment('Payment was not completed');
         } catch (\Exception $e) {
             Log::error('RediPay error processing callback', [
                 'error' => $e->getMessage(),
@@ -147,10 +166,10 @@ class DepositController extends Controller
             );
 
             DB::commit();
-            $amountInCents = $amount * 100;
+
             // Calculate fee amount (5%)
-            $feeAmount = $amountInCents * 0.05;
-            $netAmount = $amountInCents - $feeAmount;
+            $feeAmount = $amount * 0.05;
+            $netAmount = $amount - $feeAmount;
 
             Log::info("{$provider} deposit successful", [
                 'wallet' => $wallet->id,
@@ -173,10 +192,10 @@ class DepositController extends Controller
 
     private function handleSuccessfulPayment($grossAmount, $feeAmount)
     {
-        $netAmount = $grossAmount - ($feeAmount/100);
+        $netAmount = $grossAmount - $feeAmount;
         return redirect()->route('dashboard')->with('toast', [
             'type' => 'success',
-            'message' => "Deposit of MYR $grossAmount was successful! (Fee: MYR " . $feeAmount/100 . ", Net amount: MYR $netAmount)"
+            'message' => "Deposit of MYR " . number_format($grossAmount, 2) . " was successful! (Fee: MYR " . number_format($feeAmount, 2) . ", Net amount: MYR " . number_format($netAmount, 2) . ")"
         ]);
     }
 
