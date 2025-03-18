@@ -121,6 +121,9 @@ class Deposit extends Component
                 'payment_method' => $this->paymentMethod
             ]);
 
+            // Store the user ID in the session for later retrieval
+            session(['payment_user_id' => $user->id]);
+
             if ($this->paymentMethod === 'toyyibpay') {
                 $toyyibPay = new ToyyibPayService();
 
@@ -170,51 +173,62 @@ class Deposit extends Component
                     return;
                 }
             } elseif ($this->paymentMethod === 'redipay') {
-                try {
-                    $rediPay = new RediPayService();
+    try {
+        $rediPay = new RediPayService();
 
-                    // According to RediPay docs, they need a callback URL for POST notifications
-                    // and a redirect URL for browser redirects after payment
-                    $paymentData = [
-                        'amount' => number_format($this->amount, 2, '.', ''),
-                        'email' => $user->email,
-                        'item' => 'Wallet Deposit',
-                        'name' => $user->name,
-                        'callback_url' => route('deposit.callback', ['wallet' => $this->wallet->id, 'method' => 'redipay']),
-                        'redirect_url' => route('dashboard'), // Direct redirect to dashboard after payment
-                        'reference_no' => $referenceNo,
-                    ];
+        // Store user ID in session before redirecting
+        session(['payment_user_id' => $user->id]);
+        session(['payment_wallet_id' => $this->wallet_id]);
 
-                    Log::info('Attempting RediPay payment creation with authentication', $paymentData);
+        // Use the dedicated RediPay callback route
+        $callbackUrl = route('redipay.callback');
 
-                    $response = $rediPay->createPayment($paymentData);
+        // Make sure the URL is absolute
+        Log::info('RediPay callback URL', ['url' => $callbackUrl]);
 
-                    if (!isset($response['payment_url'])) {
-                        Log::error('RediPay: Invalid response format', ['response' => $response]);
-                        session()->flash('toast', [
-                            'type' => 'error',
-                            'message' => 'Payment gateway error: Missing payment URL'
-                        ]);
-                        return redirect()->route('dashboard');
-                    }
+        // Use the dedicated endpoints for RediPay
+        $paymentData = [
+            'amount' => number_format($this->amount, 2, '.', ''),
+            'email' => $user->email,
+            'item' => 'Wallet Deposit',
+            'name' => $user->name,
+            'callback_url' => $callbackUrl, // Server-to-server callback
+            'redirect_url' => $callbackUrl, // User browser redirect
+            'reference_no' => $referenceNo,
+            'wallet_id' => $this->wallet_id, // Include wallet ID in the reference
+            'user_id' => $user->id, // Include user ID in the payment data
+        ];
 
-                    $this->paymentUrl = $response['payment_url'];
-                    Log::info('RediPay payment URL generated', ['url' => $this->paymentUrl]);
+        Log::info('Attempting RediPay payment creation', $paymentData);
 
-                    return redirect()->to($this->paymentUrl);
-                } catch (\Exception $e) {
-                    Log::error('RediPay: Payment creation failed', [
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
-                    ]);
+        $response = $rediPay->createPayment($paymentData);
 
-                    session()->flash('toast', [
-                        'type' => 'error',
-                        'message' => 'Payment gateway error: ' . $e->getMessage()
-                    ]);
-                    return redirect()->route('dashboard');
-                }
-            } elseif ($this->paymentMethod === 'stripe') {
+        if (!isset($response['payment_url'])) {
+            Log::error('RediPay: Invalid response format', ['response' => $response]);
+            session()->flash('toast', [
+                'type' => 'error',
+                'message' => 'Payment gateway error: Missing payment URL'
+            ]);
+            return redirect()->route('dashboard');
+        }
+
+        $this->paymentUrl = $response['payment_url'];
+        Log::info('RediPay payment URL generated', ['url' => $this->paymentUrl]);
+
+        return redirect()->to($this->paymentUrl);
+    } catch (\Exception $e) {
+        Log::error('RediPay: Payment creation failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        session()->flash('toast', [
+            'type' => 'error',
+            'message' => 'Payment gateway error: ' . $e->getMessage()
+        ]);
+        return redirect()->route('dashboard');
+    }
+} elseif ($this->paymentMethod === 'stripe') {
                 // For Stripe, we'll redirect to our dedicated controller
                 return redirect()->route('stripe.checkout', [
                     'amount' => $this->amount,

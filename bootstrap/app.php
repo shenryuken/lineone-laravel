@@ -18,7 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->validateCsrfTokens(except: [
-            'stripe/webhook',
+            'stripe/*',
+            'deposit/callback/*/*',
+            'payment/success',
+            'redipay/callback',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

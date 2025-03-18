@@ -249,12 +249,12 @@
 */
 @endphp
 <div class="mt-4">
-    @if(session('toast'))
+    {{-- @if(session('toast'))
     <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show"
         class="fixed top-4 right-4 z-50 rounded-lg px-4 py-3 shadow-lg transition-all duration-300 ease-in-out {{ session('toast.type') === 'success' ? 'bg-emerald-500' : 'bg-red-500' }} text-white">
         {{ session('toast.message') }}
     </div>
-    @endif
+    @endif --}}
 
     <div class="grid grid-cols-12 gap-4 sm:gap-5 lg:gap-6">
         <!-- User Welcome & Quick Stats -->
@@ -600,18 +600,6 @@
             </div>
         </div>
     </div>
-
-    <div class="mt-4">
-        @if(session('toast'))
-        <div class="fixed top-4 right-4 z-50 max-w-md">
-            <x-payment-notification type="{{ session('toast.type') }}" message="{{ session('toast.message') }}"
-                timeout="5000" />
-        </div>
-        @endif
-
-        <!-- Rest of your dashboard content -->
-    </div>
-
     <!-- Transfer Modal -->
     @if($showTransferModal)
     <div

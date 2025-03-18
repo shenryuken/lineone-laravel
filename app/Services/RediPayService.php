@@ -20,6 +20,10 @@ class RediPayService
         $this->clientId = config('redipay.client_id');
         $this->clientSecret = config('redipay.client_secret');
         $this->secretKey = config('redipay.secret_key');
+
+        if (empty($this->baseUrl) || empty($this->clientId) || empty($this->clientSecret) || empty($this->secretKey)) {
+            throw new \Exception('RediPay configuration is incomplete');
+        }
     }
 
     /**
@@ -55,7 +59,7 @@ class RediPayService
                 Log::info('RediPay token obtained successfully', ['expires_in' => $data['expires_in'] ?? 'unknown']);
 
                 // Cache the token (for slightly less than the expiry time)
-                $expiresIn = ($data['expires_in'] ?? 3600) - 60;
+                $expiresIn = ($data['expires_in'] ?? 1296000) - 60;
                 $token = $data['access_token'];
 
                 Cache::put('redipay_access_token', $token, $expiresIn);

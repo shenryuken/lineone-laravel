@@ -36,7 +36,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/stripe/checkout', [StripePaymentController::class, 'checkout'])->name('stripe.checkout');
     Route::get('/stripe/success', [StripePaymentController::class, 'success'])->name('stripe.success');
     Route::get('/stripe/cancel', [StripePaymentController::class, 'cancel'])->name('stripe.cancel');
+
+    Route::match(['get', 'post'], '/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])
+        ->name('deposit.callback');
 });
+
+// Add this route outside the auth middleware group
+// RediPay routes
+Route::post('redipay/callback', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect'])->name('redipay.callback');
+Route::get('redipay/callback', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect']);
+Route::match(['get', 'post'], 'redipay/redirect', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect'])->name('redipay.redirect');
 
 
 
@@ -54,9 +63,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route::get('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])->name('deposit.callback');
     // Route::post('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback']);
     // Deposit callback routes - support both GET and POST methods
-    Route::match(['get', 'post'], '/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])
-        ->name('deposit.callback');
-
+    // Route::match(['get', 'post'], '/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])
+    //     ->name('deposit.callback')->withoutMiddleware(['verified','verify_csrf_token']);
 
     Route::get('/transactions/history', function () {
         return view('transactions.history');
