@@ -45,7 +45,7 @@ Route::middleware(['auth'])->group(function () {
 // RediPay routes
 Route::post('redipay/callback', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect'])->name('redipay.callback');
 Route::get('redipay/callback', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect']);
-Route::match(['get', 'post'], 'redipay/redirect', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect'])->name('redipay.redirect');
+// Route::match(['get', 'post'], 'redipay/redirect', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect'])->name('redipay.redirect');
 
 
 

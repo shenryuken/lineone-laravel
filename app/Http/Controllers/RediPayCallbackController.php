@@ -28,10 +28,13 @@ class RediPayCallbackController extends Controller
       $result = $this->processPayment($request);
 
       // Return JSON response for API callback
-      return response()->json([
-          'status' => $result['success'] ? 'success' : 'error',
-          'message' => $result['message']
-      ], $result['success'] ? 200 : 400);
+    //   return response()->json([
+    //       'status' => $result['success'] ? 'success' : 'error',
+    //       'message' => $result['message']
+    //   ], $result['success'] ? 200 : 400);
+
+    // Always respond with success to RediPay
+    return response()->json(['status' => 'success']);
   }
 
   /**
