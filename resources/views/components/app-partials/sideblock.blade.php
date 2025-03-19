@@ -5,8 +5,8 @@
             <!-- Application Logo -->
             <div class="flex">
                 <a href="{{route('dashboard')}}">
-                    <img class="size-11 transition-transform duration-500 ease-in-out hover:rotate-[360deg]"
-                        src="{{ asset('images/app-logo.svg') }}" alt="logo" />
+                    <img class="transition-transform duration-500 ease-in-out hover:rotate-[360deg]"
+                        src="{{ asset('images/horizontal.png') }}" alt="logo" />
                 </a>
             </div>
             <button @click="$store.global.isSidebarExpanded = false"
