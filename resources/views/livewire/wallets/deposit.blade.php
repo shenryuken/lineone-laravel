@@ -70,7 +70,7 @@
                 @endif
             </div>
 
-            <div class="mb-4">
+            {{-- <div class="mb-4">
                 <label class="block text-sm font-medium text-slate-700 dark:text-navy-100">
                     Payment Method
                 </label>
@@ -95,6 +95,44 @@
                     </label>
                 </div>
                 @error('paymentMethod') <span class="text-error text-sm">{{ $message }}</span> @enderror
+            </div> --}}
+            <div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-navy-100">
+                        Payment Method
+                    </label>
+                    <div class="mt-1.5 grid grid-cols-2 gap-3">
+                        <label
+                            class="flex cursor-pointer items-center rounded-lg border p-3 transition-all duration-200 ease-in-out
+                            {{ $paymentMethod === 'redipay' ? 'border-primary bg-primary/10 dark:border-accent dark:bg-accent/10' : 'border-slate-300 hover:border-slate-400 dark:border-navy-450 dark:hover:border-navy-400' }}">
+                            <input type="radio" wire:model.live="paymentMethod" value="redipay"
+                                class="form-radio mr-2 border-slate-400/70 checked:border-primary checked:bg-primary hover:border-primary focus:border-primary dark:border-navy-400 dark:checked:border-accent dark:checked:bg-accent dark:hover:border-accent dark:focus:border-accent">
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-primary dark:text-accent-light"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                <span class="font-medium">RediPay</span>
+                            </div>
+                        </label>
+                        <label
+                            class="flex cursor-pointer items-center rounded-lg border p-3 transition-all duration-200 ease-in-out
+                            {{ $paymentMethod === 'stripe' ? 'border-primary bg-primary/10 dark:border-accent dark:bg-accent/10' : 'border-slate-300 hover:border-slate-400 dark:border-navy-450 dark:hover:border-navy-400' }}">
+                            <input type="radio" wire:model.live="paymentMethod" value="stripe"
+                                class="form-radio mr-2 border-slate-400/70 checked:border-primary checked:bg-primary hover:border-primary focus:border-primary dark:border-navy-400 dark:checked:border-accent dark:checked:bg-accent dark:hover:border-accent dark:focus:border-accent">
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-primary dark:text-accent-light"
+                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                    <path d="M1 10h22" />
+                                </svg>
+                                <span class="font-medium">Stripe</span>
+                            </div>
+                        </label>
+                    </div>
+                    @error('paymentMethod') <span class="text-error text-sm">{{ $message }}</span> @enderror
+                </div>
             </div>
 
             <div class="flex justify-end space-x-2">
