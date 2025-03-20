@@ -9,7 +9,10 @@ use Stripe\Webhook;
 use App\Models\Transaction;
 use App\Models\Wallet;
 use App\Models\User;
+use App\Models\PendingPayment;
+use App\Services\WalletService;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class StripeWebhookController extends Controller
 {
@@ -50,16 +53,60 @@ class StripeWebhookController extends Controller
 
     private function handleSuccessfulPayment($paymentIntent)
     {
-        // Check if we already have a transaction for this payment intent
-        $existingTransaction = Transaction::where('metadata->payment_intent_id', $paymentIntent->id)
+        // Try to find a pending payment for this payment intent
+        $pendingPayment = PendingPayment::where('metadata->payment_intent_id', $paymentIntent->id)
+            ->where('status', 'pending')
+            ->first();
+
+        $referenceId = null;
+
+        if ($pendingPayment) {
+            $referenceId = $pendingPayment->reference_id;
+            Log::info('Stripe webhook: Found pending payment', [
+                'payment_intent_id' => $paymentIntent->id,
+                'pending_payment_id' => $pendingPayment->id,
+                'reference_id' => $referenceId
+            ]);
+        }
+
+        // If we don't have a reference ID from the pending payment, try to get it from the payment intent metadata
+        if (!$referenceId && isset($paymentIntent->metadata->reference_id)) {
+            $referenceId = $paymentIntent->metadata->reference_id;
+        }
+
+        // If we still don't have a reference ID, generate one
+        if (!$referenceId) {
+            $referenceId = 'STRIPE-' . Str::upper(Str::random(10));
+        }
+
+        // Check if we already have a transaction for this payment intent or reference ID
+        $existingTransaction = Transaction::where(function($query) use ($paymentIntent, $referenceId) {
+                $query->where('metadata->payment_intent_id', $paymentIntent->id)
+                    ->orWhere('reference_id', $referenceId);
+            })
             ->where('type', Transaction::TYPE_DEPOSIT)
             ->first();
 
         if ($existingTransaction) {
             Log::info('Stripe webhook: Transaction already exists for payment intent', [
                 'payment_intent_id' => $paymentIntent->id,
-                'transaction_id' => $existingTransaction->id
+                'transaction_id' => $existingTransaction->id,
+                'reference_id' => $referenceId
             ]);
+
+            // Update the pending payment if it exists
+            if ($pendingPayment) {
+                $pendingPayment->update([
+                    'status' => 'completed',
+                    'last_checked_at' => now(),
+                    'metadata' => array_merge($pendingPayment->metadata ?? [], [
+                        'transaction_id' => $existingTransaction->id,
+                        'completed_at' => now()->toIso8601String(),
+                        'webhook_processed' => true
+                    ])
+                ]);
+            }
+
             return;
         }
 
@@ -67,11 +114,21 @@ class StripeWebhookController extends Controller
         try {
             // Get the amount from the payment intent (already in cents)
             $amountCents = $paymentIntent->amount;
-            $userId = $paymentIntent->metadata->user_id ?? null;
+            $amount = $amountCents / 100; // Convert to dollars/ringgit
+
+            // Get the user ID from the payment intent metadata or pending payment
+            $userId = null;
+
+            if ($pendingPayment) {
+                $userId = $pendingPayment->user_id;
+            } elseif (isset($paymentIntent->metadata->user_id)) {
+                $userId = $paymentIntent->metadata->user_id;
+            }
 
             if (!$userId) {
-                Log::error('Stripe webhook: No user ID in payment intent metadata', [
-                    'payment_intent_id' => $paymentIntent->id
+                Log::error('Stripe webhook: No user ID found', [
+                    'payment_intent_id' => $paymentIntent->id,
+                    'reference_id' => $referenceId
                 ]);
                 return;
             }
@@ -80,90 +137,93 @@ class StripeWebhookController extends Controller
             if (!$user) {
                 Log::error('Stripe webhook: User not found', [
                     'payment_intent_id' => $paymentIntent->id,
-                    'user_id' => $userId
+                    'user_id' => $userId,
+                    'reference_id' => $referenceId
                 ]);
                 return;
             }
 
-            $wallet = $user->wallet();
+            // Get the wallet ID from the pending payment or payment intent metadata
+            $walletId = null;
 
-            // Calculate fee (5%)
-            $feeCents = (int)($amountCents * 0.05);
-            $netAmountCents = $amountCents - $feeCents;
+            if ($pendingPayment) {
+                $walletId = $pendingPayment->wallet_id;
+            } elseif (isset($paymentIntent->metadata->wallet_id)) {
+                $walletId = $paymentIntent->metadata->wallet_id;
+            }
 
-            // Generate a reference ID
-            $referenceId = 'STRIPE-' . Str::upper(Str::random(10));
+            // If we don't have a wallet ID, use the user's default wallet
+            if (!$walletId) {
+                $wallet = $user->wallet();
+            } else {
+                $wallet = Wallet::find($walletId);
+            }
 
-            // Begin transaction
-            \DB::beginTransaction();
+            if (!$wallet) {
+                Log::error('Stripe webhook: Wallet not found', [
+                    'payment_intent_id' => $paymentIntent->id,
+                    'user_id' => $userId,
+                    'wallet_id' =>  => $paymentIntent->id,
+                    'user_id' => $userId,
+                    'wallet_id' => $walletId
+                ]);
+                return;
+            }
 
+            // Process the deposit using WalletService
             try {
-                $balanceBefore = $wallet->balance;
+                $walletService = new WalletService();
+                $result = $walletService->deposit(
+                    $wallet,
+                    (float)$amount,
+                    "Deposit via Stripe (webhook)",
+                    'stripe',
+                    $referenceId
+                );
 
-                // First, create the deposit transaction (gross amount)
-                $depositTransaction = $wallet->transactions()->create([
-                    'type' => Transaction::TYPE_DEPOSIT,
-                    'amount' => $amountCents,
-                    'currency' => $wallet->currency,
-                    'balance_before' => $balanceBefore,
-                    'balance_after' => $balanceBefore + $amountCents, // Full amount before fee
-                    'description' => 'Deposit via Stripe (webhook)',
-                    'status' => Transaction::STATUS_COMPLETED,
-                    'metadata' => [
-                        'provider' => 'stripe',
-                        'gross_amount' => $amountCents,
-                        'fee_amount' => $feeCents,
-                        'net_amount' => $netAmountCents,
-                        'payment_intent_id' => $paymentIntent->id,
-                        'webhook_processed' => true
-                    ],
-                    'reference_id' => $referenceId,
-                    'provider' => 'stripe'
-                ]);
-
-                // Then, create the fee transaction
-                $feeTransaction = $wallet->transactions()->create([
-                    'type' => Transaction::TYPE_DEPOSIT_FEE,
-                    'amount' => -$feeCents, // Negative amount for fee
-                    'currency' => $wallet->currency,
-                    'balance_before' => $balanceBefore + $amountCents, // Balance after deposit
-                    'balance_after' => $balanceBefore + $netAmountCents, // Final balance after fee
-                    'description' => "Processing fee for deposit {$referenceId}",
-                    'status' => Transaction::STATUS_COMPLETED,
-                    'metadata' => [
-                        'deposit_id' => $depositTransaction->id,
-                        'fee_percentage' => 5,
-                        'payment_intent_id' => $paymentIntent->id,
-                        'webhook_processed' => true
-                    ],
-                    'reference_id' => $referenceId,
-                    'provider' => 'stripe'
-                ]);
-
-                // Finally, update the wallet balance with the net amount
-                $wallet->balance = $balanceBefore + $netAmountCents;
-                $wallet->save();
-
-                // Store a notification for the user to see on their next page load
-                session()->flash('toast', [
-                    'type' => 'success',
-                    'message' => 'Payment of ' . $wallet->currency . ' ' . number_format($amountCents/100, 2) . ' was processed successfully via webhook!'
-                ]);
-
-                \DB::commit();
+                // Update the pending payment if it exists
+                if ($pendingPayment) {
+                    $pendingPayment->update([
+                        'status' => 'completed',
+                        'last_checked_at' => now(),
+                        'metadata' => array_merge($pendingPayment->metadata ?? [], [
+                            'transaction_id' => $result['deposit']->id,
+                            'completed_at' => now()->toIso8601String(),
+                            'webhook_processed' => true
+                        ])
+                    ]);
+                }
 
                 Log::info('Stripe webhook: Created transactions from webhook', [
-                    'deposit_transaction_id' => $depositTransaction->id,
-                    'fee_transaction_id' => $feeTransaction->id,
+                    'deposit_transaction_id' => $result['deposit']->id,
+                    'fee_transaction_id' => $result['fee']->id,
                     'payment_intent_id' => $paymentIntent->id,
-                    'amount' => $amountCents
+                    'amount' => $amount,
+                    'reference_id' => $referenceId
                 ]);
             } catch (\Exception $e) {
-                \DB::rollBack();
-                throw $e;
+                Log::error('Stripe webhook: Failed to create transaction', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'payment_intent_id' => $paymentIntent->id,
+                    'reference_id' => $referenceId
+                ]);
+
+                // Update the pending payment with the error if it exists
+                if ($pendingPayment) {
+                    $pendingPayment->update([
+                        'status' => 'failed',
+                        'last_checked_at' => now(),
+                        'metadata' => array_merge($pendingPayment->metadata ?? [], [
+                            'error' => $e->getMessage(),
+                            'failed_at' => now()->toIso8601String(),
+                            'webhook_processed' => true
+                        ])
+                    ]);
+                }
             }
         } catch (\Exception $e) {
-            Log::error('Stripe webhook: Failed to create transaction', [
+            Log::error('Stripe webhook: Failed to process payment', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'payment_intent_id' => $paymentIntent->id
@@ -173,39 +233,52 @@ class StripeWebhookController extends Controller
 
     private function handleFailedPayment($paymentIntent)
     {
-        // Check if we already have a transaction for this payment intent
-        $existingTransaction = Transaction::where('metadata->payment_intent_id', $paymentIntent->id)
-            ->where('type', Transaction::TYPE_DEPOSIT)
+        // Try to find a pending payment for this payment intent
+        $pendingPayment = PendingPayment::where('metadata->payment_intent_id', $paymentIntent->id)
             ->first();
 
-        if ($existingTransaction) {
-            // Update transaction status to failed
-            $existingTransaction->update([
-                'status' => Transaction::STATUS_FAILED,
-                'metadata' => array_merge($existingTransaction->metadata, [
+        if ($pendingPayment) {
+            // Update pending payment status to failed
+            $pendingPayment->update([
+                'status' => 'failed',
+                'last_checked_at' => now(),
+                'metadata' => array_merge($pendingPayment->metadata ?? [], [
                     'failure_message' => $paymentIntent->last_payment_error->message ?? 'Payment failed',
+                    'failed_at' => now()->toIso8601String(),
                     'webhook_processed' => true
                 ])
             ]);
 
-            // Get the user to show them a notification
-            $user = User::find($existingTransaction->user_id);
-            if ($user) {
-                // Store a notification for the user to see on their next page load
-                session()->flash('toast', [
-                    'type' => 'error',
-                    'message' => 'Your payment has failed: ' . ($paymentIntent->last_payment_error->message ?? 'Unknown error')
-                ]);
-            }
-
-            Log::info('Stripe webhook: Transaction marked as failed', [
-                'transaction_id' => $existingTransaction->id,
-                'payment_intent_id' => $paymentIntent->id
+            Log::info('Stripe webhook: Pending payment marked as failed', [
+                'pending_payment_id' => $pendingPayment->id,
+                'payment_intent_id' => $paymentIntent->id,
+                'reference_id' => $pendingPayment->reference_id
             ]);
         } else {
-            Log::warning('Stripe webhook: No transaction found for failed payment intent', [
-                'payment_intent_id' => $paymentIntent->id
-            ]);
+            // Check if we already have a transaction for this payment intent
+            $existingTransaction = Transaction::where('metadata->payment_intent_id', $paymentIntent->id)
+                ->where('type', Transaction::TYPE_DEPOSIT)
+                ->first();
+
+            if ($existingTransaction) {
+                // Update transaction status to failed
+                $existingTransaction->update([
+                    'status' => Transaction::STATUS_FAILED,
+                    'metadata' => array_merge($existingTransaction->metadata, [
+                        'failure_message' => $paymentIntent->last_payment_error->message ?? 'Payment failed',
+                        'webhook_processed' => true
+                    ])
+                ]);
+
+                Log::info('Stripe webhook: Transaction marked as failed', [
+                    'transaction_id' => $existingTransaction->id,
+                    'payment_intent_id' => $paymentIntent->id
+                ]);
+            } else {
+                Log::warning('Stripe webhook: No pending payment or transaction found for failed payment intent', [
+                    'payment_intent_id' => $paymentIntent->id
+                ]);
+            }
         }
     }
 }

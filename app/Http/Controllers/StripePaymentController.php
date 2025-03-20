@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\Models\Wallet;
+use App\Models\PendingPayment;
 use App\Services\StripeService;
+use App\Services\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class StripePaymentController extends Controller
 {
@@ -20,10 +23,17 @@ class StripePaymentController extends Controller
         $request->validate([
             'amount' => 'required|numeric|min:10',
             'wallet_id' => 'required|exists:wallets,id',
+            'reference_id' => 'nullable|string'
         ]);
 
         $amount = $request->input('amount');
         $walletId = $request->input('wallet_id');
+        $referenceId = $request->input('reference_id');
+
+        // If no reference ID was provided, generate one
+        if (!$referenceId) {
+            $referenceId = 'STRIPE-' . Str::upper(Str::random(10));
+        }
 
         $wallet = Wallet::findOrFail($walletId);
 
@@ -57,13 +67,48 @@ class StripePaymentController extends Controller
                 'stripe_payment_amount' => $amount,
                 'stripe_payment_wallet_id' => $walletId,
                 'stripe_payment_fee' => $feeAmount,
-                'stripe_payment_net' => $netAmount
+                'stripe_payment_net' => $netAmount,
+                'stripe_payment_reference_id' => $referenceId
             ]);
+
+            // Check if we already have a pending payment record
+            $pendingPayment = PendingPayment::where('reference_id', $referenceId)
+                ->where('user_id', Auth::id())
+                ->first();
+
+            // If no pending payment record exists, create one
+            if (!$pendingPayment) {
+                PendingPayment::create([
+                    'user_id' => Auth::id(),
+                    'wallet_id' => $walletId,
+                    'reference_id' => $referenceId,
+                    'provider' => 'stripe',
+                    'amount' => $amount,
+                    'status' => 'pending',
+                    'metadata' => [
+                        'payment_intent_id' => $paymentIntent->id,
+                        'email' => Auth::user()->email,
+                        'name' => Auth::user()->name,
+                        'created_at' => now()->toIso8601String(),
+                    ]
+                ]);
+            } else {
+                // Update the existing pending payment with the new payment intent ID
+                $pendingPayment->update([
+                    'status' => 'pending',
+                    'last_checked_at' => now(),
+                    'metadata' => array_merge($pendingPayment->metadata ?? [], [
+                        'payment_intent_id' => $paymentIntent->id,
+                        'updated_at' => now()->toIso8601String(),
+                    ])
+                ]);
+            }
 
             Log::info('Stripe payment intent created', [
                 'payment_intent_id' => $paymentIntent->id,
                 'amount' => $amount,
-                'wallet_id' => $walletId
+                'wallet_id' => $walletId,
+                'reference_id' => $referenceId
             ]);
 
             return view('payments.stripe-checkout', [
@@ -71,7 +116,8 @@ class StripePaymentController extends Controller
                 'amount' => $amount,
                 'wallet' => $wallet,
                 'feeAmount' => $feeAmount,
-                'netAmount' => $netAmount
+                'netAmount' => $netAmount,
+                'referenceId' => $referenceId
             ]);
 
         } catch (\Exception $e) {
@@ -107,6 +153,7 @@ class StripePaymentController extends Controller
 
         // Verify this is the payment intent we created
         $sessionPaymentIntentId = session('stripe_payment_intent_id');
+        $referenceId = session('stripe_payment_reference_id');
 
         if ($paymentIntentId !== $sessionPaymentIntentId) {
             Log::error('Stripe payment mismatch', [
@@ -132,6 +179,24 @@ class StripePaymentController extends Controller
                     'status' => $paymentIntent->status
                 ]);
 
+                // Update the pending payment status
+                if ($referenceId) {
+                    $pendingPayment = PendingPayment::where('reference_id', $referenceId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+
+                    if ($pendingPayment) {
+                        $pendingPayment->update([
+                            'status' => 'failed',
+                            'last_checked_at' => now(),
+                            'metadata' => array_merge($pendingPayment->metadata ?? [], [
+                                'status' => $paymentIntent->status,
+                                'failed_at' => now()->toIso8601String(),
+                            ])
+                        ]);
+                    }
+                }
+
                 return redirect()->route('dashboard')->with([
                     'toast' => [
                         'type' => 'error',
@@ -146,94 +211,135 @@ class StripePaymentController extends Controller
             $feeAmount = session('stripe_payment_fee');
             $netAmount = session('stripe_payment_net');
 
+            // If we don't have the reference ID from the session, try to find it from the pending payment
+            if (!$referenceId) {
+                $pendingPayment = PendingPayment::where('metadata->payment_intent_id', $paymentIntentId)
+                    ->where('user_id', Auth::id())
+                    ->first();
+
+                if ($pendingPayment) {
+                    $referenceId = $pendingPayment->reference_id;
+                } else {
+                    // Generate a new reference ID if we can't find one
+                    $referenceId = 'STRIPE-' . Str::upper(Str::random(10));
+                }
+            }
+
+            // Check if we already processed this transaction
+            $existingTransaction = Transaction::where('reference_id', $referenceId)
+                ->where(function($query) {
+                    $query->where('metadata->provider', 'stripe');
+                })
+                ->first();
+
+            if ($existingTransaction) {
+                Log::info('Stripe payment: Transaction already processed', [
+                    'reference_id' => $referenceId,
+                    'transaction_id' => $existingTransaction->id
+                ]);
+
+                // Update the pending payment status if it exists
+                $pendingPayment = PendingPayment::where('reference_id', $referenceId)->first();
+                if ($pendingPayment) {
+                    $pendingPayment->update([
+                        'status' => 'completed',
+                        'last_checked_at' => now(),
+                        'metadata' => array_merge($pendingPayment->metadata ?? [], [
+                            'transaction_id' => $existingTransaction->id,
+                            'completed_at' => now()->toIso8601String(),
+                        ])
+                    ]);
+                }
+
+                // Clear the session data
+                session()->forget([
+                    'stripe_payment_intent_id',
+                    'stripe_payment_amount',
+                    'stripe_payment_wallet_id',
+                    'stripe_payment_fee',
+                    'stripe_payment_net',
+                    'stripe_payment_reference_id'
+                ]);
+
+                return redirect()->route('payment.status', ['reference' => $referenceId]);
+            }
+
             // Get the wallet
             $wallet = Wallet::findOrFail($walletId);
 
-            // Convert amounts to cents for storage
-            $amountCents = (int)($amount * 100);
-            $feeCents = (int)($feeAmount * 100);
-            $netAmountCents = (int)($netAmount * 100);
-
-            // Generate a reference ID
-            $referenceId = 'STRIPE-' . Str::upper(Str::random(10));
-
-            // Begin transaction
-            \DB::beginTransaction();
-
+            // Process the deposit using WalletService
             try {
-                $balanceBefore = $wallet->balance;
+                $walletService = new WalletService();
+                $result = $walletService->deposit(
+                    $wallet,
+                    (float)$amount,
+                    "Deposit via Stripe",
+                    'stripe',
+                    $referenceId
+                );
 
-                // First, create the deposit transaction (gross amount)
-                $depositTransaction = $wallet->transactions()->create([
-                    'type' => Transaction::TYPE_DEPOSIT,
-                    'amount' => $amountCents,
-                    'currency' => $wallet->currency,
-                    'balance_before' => $balanceBefore,
-                    'balance_after' => $balanceBefore + $amountCents, // Full amount before fee
-                    'description' => 'Deposit via Stripe',
-                    'status' => Transaction::STATUS_COMPLETED,
-                    'metadata' => [
-                        'provider' => 'stripe',
-                        'gross_amount' => $amountCents,
-                        'fee_amount' => $feeCents,
-                        'net_amount' => $netAmountCents,
-                        'payment_intent_id' => $paymentIntentId
-                    ],
-                    'reference_id' => $referenceId,
-                    'provider' => 'stripe'
-                ]);
-
-                // Then, create the fee transaction
-                $feeTransaction = $wallet->transactions()->create([
-                    'type' => Transaction::TYPE_DEPOSIT_FEE,
-                    'amount' => -$feeCents, // Negative amount for fee
-                    'currency' => $wallet->currency,
-                    'balance_before' => $balanceBefore + $amountCents, // Balance after deposit
-                    'balance_after' => $balanceBefore + $netAmountCents, // Final balance after fee
-                    'description' => "Processing fee for deposit {$referenceId}",
-                    'status' => Transaction::STATUS_COMPLETED,
-                    'metadata' => [
-                        'deposit_id' => $depositTransaction->id,
-                        'fee_percentage' => 5,
-                        'payment_intent_id' => $paymentIntentId
-                    ],
-                    'reference_id' => $referenceId,
-                    'provider' => 'stripe'
-                ]);
-
-                // Finally, update the wallet balance with the net amount
-                $wallet->balance = $balanceBefore + $netAmountCents;
-                $wallet->save();
-
-                \DB::commit();
+                // Update the pending payment if it exists
+                $pendingPayment = PendingPayment::where('reference_id', $referenceId)->first();
+                if ($pendingPayment) {
+                    $pendingPayment->update([
+                        'status' => 'completed',
+                        'last_checked_at' => now(),
+                        'metadata' => array_merge($pendingPayment->metadata ?? [], [
+                            'transaction_id' => $result['deposit']->id,
+                            'completed_at' => now()->toIso8601String(),
+                        ])
+                    ]);
+                }
 
                 Log::info('Stripe payment processed successfully', [
                     'payment_intent_id' => $paymentIntentId,
-                    'deposit_transaction_id' => $depositTransaction->id,
-                    'fee_transaction_id' => $feeTransaction->id,
-                    'amount' => $amountCents,
-                    'wallet_id' => $walletId
+                    'deposit_transaction_id' => $result['deposit']->id,
+                    'fee_transaction_id' => $result['fee']->id,
+                    'amount' => $amount,
+                    'wallet_id' => $walletId,
+                    'reference_id' => $referenceId
                 ]);
+
+                // Clear the session data
+                session()->forget([
+                    'stripe_payment_intent_id',
+                    'stripe_payment_amount',
+                    'stripe_payment_wallet_id',
+                    'stripe_payment_fee',
+                    'stripe_payment_net',
+                    'stripe_payment_reference_id'
+                ]);
+
+                return redirect()->route('payment.status', ['reference' => $referenceId]);
+
             } catch (\Exception $e) {
-                \DB::rollBack();
-                throw $e;
+                Log::error('Error processing Stripe payment deposit', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'payment_intent_id' => $paymentIntentId,
+                    'reference_id' => $referenceId
+                ]);
+
+                // Update the pending payment with the error if it exists
+                $pendingPayment = PendingPayment::where('reference_id', $referenceId)->first();
+                if ($pendingPayment) {
+                    $pendingPayment->update([
+                        'status' => 'failed',
+                        'last_checked_at' => now(),
+                        'metadata' => array_merge($pendingPayment->metadata ?? [], [
+                            'error' => $e->getMessage(),
+                            'failed_at' => now()->toIso8601String(),
+                        ])
+                    ]);
+                }
+
+                return redirect()->route('dashboard')->with([
+                    'toast' => [
+                        'type' => 'error',
+                        'message' => 'An error occurred while processing your payment: ' . $e->getMessage()
+                    ]
+                ]);
             }
-
-            // Clear the session data
-            session()->forget([
-                'stripe_payment_intent_id',
-                'stripe_payment_amount',
-                'stripe_payment_wallet_id',
-                'stripe_payment_fee',
-                'stripe_payment_net'
-            ]);
-
-            return redirect()->route('dashboard')->with([
-                'toast' => [
-                    'type' => 'success',
-                    'message' => 'Payment successful! ' . $wallet->currency . ' ' . number_format($amount, 2) . ' has been added to your wallet.'
-                ]
-            ]);
 
         } catch (\Exception $e) {
             Log::error('Error processing Stripe payment', [
@@ -254,15 +360,36 @@ class StripePaymentController extends Controller
     /**
      * Handle canceled payment
      */
-    public function cancel()
+    public function cancel(Request $request)
     {
+        $referenceId = session('stripe_payment_reference_id');
+
+        // Update the pending payment status if it exists
+        if ($referenceId) {
+            $pendingPayment = PendingPayment::where('reference_id', $referenceId)
+                ->where('user_id', Auth::id())
+                ->first();
+
+            if ($pendingPayment) {
+                $pendingPayment->update([
+                    'status' => 'failed',
+                    'last_checked_at' => now(),
+                    'metadata' => array_merge($pendingPayment->metadata ?? [], [
+                        'canceled_at' => now()->toIso8601String(),
+                        'reason' => 'User canceled the payment'
+                    ])
+                ]);
+            }
+        }
+
         // Clear the session data
         session()->forget([
             'stripe_payment_intent_id',
             'stripe_payment_amount',
             'stripe_payment_wallet_id',
             'stripe_payment_fee',
-            'stripe_payment_net'
+            'stripe_payment_net',
+            'stripe_payment_reference_id'
         ]);
 
         return redirect()->route('dashboard')->with([

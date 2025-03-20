@@ -44,10 +44,19 @@ Route::middleware(['auth'])->group(function () {
 // Add this route outside the auth middleware group
 // RediPay routes
 Route::post('redipay/callback', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect'])->name('redipay.callback');
-Route::get('redipay/callback', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect']);
-// Route::match(['get', 'post'], 'redipay/redirect', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect'])->name('redipay.redirect');
+// Route::get('redipay/callback', [App\Http\Controllers\RediPayCallbackController::class, 'handleRedirect']);
+Route::match(['get', 'post'], 'redipay/success', [App\Http\Controllers\PaymentStatusController::class, 'show'])
+    ->name('redipay.success')
+    ->withoutMiddleware(['auth']);
 
+// Payment status routes
+Route::get('payment/status/{reference?}', [App\Http\Controllers\PaymentStatusController::class, 'show'])
+    ->name('payment.status')
+    ->middleware(['auth']);
 
+Route::post('payment/status/check', [App\Http\Controllers\PaymentStatusController::class, 'check'])
+    ->name('payment.status.check')
+    ->middleware(['auth']);
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {

@@ -4,6 +4,7 @@ namespace App\Livewire\Wallets;
 
 use Livewire\Component;
 use App\Models\Wallet;
+use App\Models\PendingPayment;
 use App\Services\ToyyibPayService;
 use App\Services\RediPayService;
 use Illuminate\Support\Facades\Auth;
@@ -261,14 +262,28 @@ class Deposit extends Component
 
             // Store the user ID in the session for later retrieval
             session(['payment_user_id' => $user->id]);
+            session(['payment_wallet_id' => $this->wallet_id]);
 
             if ($this->paymentMethod === 'redipay') {
                 try {
                     $rediPay = new RediPayService();
 
-                    // Store user ID in session before redirecting
-                    session(['payment_user_id' => $user->id]);
-                    session(['payment_wallet_id' => $this->wallet_id]);
+                    // Create a pending payment record
+                    PendingPayment::create([
+                        'user_id' => $user->id,
+                        'wallet_id' => $this->wallet_id,
+                        'reference_id' => $referenceNo,
+                        'provider' => 'redipay',
+                        'amount' => $this->amount,
+                        'status' => 'pending',
+                        'metadata' => [
+                            'email' => $user->email,
+                            'name' => $user->name,
+                            'callback_url' => route('redipay.callback'),
+                            'redirect_url' => route('redipay.callback'),
+                            'created_at' => now()->toIso8601String(),
+                        ]
+                    ]);
 
                     // Use the dedicated RediPay callback route
                     $callbackUrl = route('redipay.callback');
@@ -319,10 +334,26 @@ class Deposit extends Component
                     return redirect()->route('dashboard');
                 }
             } elseif ($this->paymentMethod === 'stripe') {
+                // Create a pending payment record for Stripe
+                PendingPayment::create([
+                    'user_id' => $user->id,
+                    'wallet_id' => $this->wallet_id,
+                    'reference_id' => $referenceNo,
+                    'provider' => 'stripe',
+                    'amount' => $this->amount,
+                    'status' => 'pending',
+                    'metadata' => [
+                        'email' => $user->email,
+                        'name' => $user->name,
+                        'created_at' => now()->toIso8601String(),
+                    ]
+                ]);
+
                 // For Stripe, we'll redirect to our dedicated controller
                 return redirect()->route('stripe.checkout', [
                     'amount' => $this->amount,
-                    'wallet_id' => $this->wallet_id
+                    'wallet_id' => $this->wallet_id,
+                    'reference_id' => $referenceNo
                 ]);
             }
         } catch (\Exception $e) {

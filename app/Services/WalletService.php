@@ -439,7 +439,7 @@ class WalletService
                 'amount' => $amountCents,
                 'currency' => $wallet->currency,
                 'balance_before' => $wallet->balance,
-                'balance_after' => $wallet->balance + $netAmountCents, // Net amount after fee
+                'balance_after' => $wallet->balance + $amountCents, // amount before fee
                 'description' => $description,
                 'status' => Transaction::STATUS_COMPLETED,
                 'metadata' => [
