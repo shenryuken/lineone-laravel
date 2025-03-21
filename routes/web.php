@@ -3,6 +3,7 @@
 // use App\Http\Controllers\PagesController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\KycController as AdminKycController;
+use App\Http\Controllers\Admin\PendingPaymentController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\StripePaymentController;
@@ -98,7 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // });
 
 
-    // Admin KYC Routes
+    // Admin Routes
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class);
         // Admin KYC Routes
@@ -112,7 +113,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/kyc/{kyc}/reject', [App\Http\Controllers\Admin\KycController::class, 'reject'])->name('kyc.reject');
         Route::post('/kyc/{kyc}/kiv', [App\Http\Controllers\Admin\KycController::class, 'kiv'])->name('kyc.kiv');
         Route::post('/kyc/{kyc}/request-info', [App\Http\Controllers\Admin\KycController::class, 'requestAdditionalInfo'])->name('kyc.request-info');
+        // End Admin KYC Routes
+
+        // Admin Pending Payments Routes
+        Route::get('/pending-payments', [PendingPaymentController::class, 'index'])->name('pending-payments.index');
+        Route::get('/pending-payments/{pendingPayment}', [PendingPaymentController::class, 'show'])->name('pending-payments.show');
+        Route::post('/pending-payments/{pendingPayment}/update-status', [PendingPaymentController::class, 'updateStatus'])->name('pending-payments.update-status');
+        Route::post('/pending-payments/{pendingPayment}/check-status', [PendingPaymentController::class, 'checkStatus'])->name('pending-payments.check-status');
+        Route::post('/pending-payments/{pendingPayment}/process-payment', [PendingPaymentController::class, 'processPayment'])->name('pending-payments.process-payment');
+        // End Admin Pending Payments Routes
     });
+    //End Admin Route
 
     // Admin KYB Routes
     Route::middleware('role:admin')->prefix('admin/kyb')->name('admin.kyb.')->group(function () {

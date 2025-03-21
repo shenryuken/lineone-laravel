@@ -76,6 +76,47 @@
                         </li>
                     </ul>
                 </li>
+                <li x-data="accordionItem('menu-pending-payments')">
+                    <a :class="expanded ? 'text-slate-800 font-semibold dark:text-navy-50' : 'text-slate-600 dark:text-navy-200'"
+                        @click="expanded = !expanded"
+                        class="flex items-center justify-between py-2 text-xs+ tracking-wide outline-none transition-[color,padding-left] duration-300 ease-in-out hover:text-slate-800 dark:hover:text-navy-50"
+                        href="javascript:void(0);">
+                        <span class="flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span>Payments</span>
+                        </span>
+                        <svg :class="expanded && 'rotate-90'" xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4 text-slate-400 transition-transform ease-in-out" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                    <ul x-collapse x-show="expanded" class="pl-4 mt-1 space-y-1">
+                        <li>
+                            <a x-data="navLink" href="{{ route('admin.pending-payments.index') }}"
+                                :class="isActive ? 'font-medium text-primary dark:text-accent-light' : 'text-slate-600 hover:text-slate-900 dark:text-navy-200 dark:hover:text-navy-50'"
+                                class="flex items-center justify-between p-2 text-xs+ tracking-wide outline-none transition-[color,padding-left] duration-300 ease-in-out hover:pl-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="h-1.5 w-1.5 rounded-full border border-current opacity-40"></div>
+                                    <span>Pending Payments</span>
+                                </div>
+                                @php
+                                $pendingCount = \App\Models\PendingPayment::where('status', 'pending')->count();
+                                @endphp
+                                @if($pendingCount > 0)
+                                <div
+                                    class="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-xs text-white dark:bg-accent">
+                                    {{ $pendingCount }}
+                                </div>
+                                @endif
+                            </a>
+                        </li>
+                    </ul>
+                </li>
                 @endrole
                 {{-- <li x-data="accordionItem('menu-item-2')">
                     <a :class="expanded && 'text-slate-800 font-semibold dark:text-navy-50'"

@@ -181,5 +181,49 @@ class RediPayService
             throw $e;
         }
     }
+
+     /**
+     * Check payment status by reference ID
+     */
+    public function checkPaymentStatusByReference($referenceId)
+    {
+        Log::info('Checking RediPay payment status by reference', ['referenceId' => $referenceId]);
+
+        try {
+            // Get access token
+            $token = $this->fetchAccessToken();
+
+            // Use the payments search endpoint
+            $endpoint = "{$this->baseUrl}/api/payments/search";
+
+            $response = Http::withToken($token)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])
+                ->post($endpoint, [
+                    'reference_no' => $referenceId
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                Log::info('RediPay payment status retrieved by reference', ['data' => $data]);
+                return $data;
+            }
+
+            Log::error('RediPay checkPaymentStatusByReference failed', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            throw new \Exception('Failed to get payment status: ' . $response->body());
+        } catch (\Exception $e) {
+            Log::error('RediPay payment status by reference exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
 }
 
