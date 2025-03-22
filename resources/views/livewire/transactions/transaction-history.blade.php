@@ -117,6 +117,9 @@
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-3 lg:px-5">
                                     {{ $transaction->description }}
+                                    @if($transaction->type !== 'deposit fee')
+                                    : {{$transaction->reference_id}}
+                                    @endif
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-3 lg:px-5">
                                     <div
