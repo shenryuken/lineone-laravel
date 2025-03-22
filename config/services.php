@@ -40,6 +40,12 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT'),
+    ],
+
     'auth0' => [
         'client_id' => env('AUTH0_CLIENT_ID'),
         'client_secret' => env('AUTH0_CLIENT_SECRET'),
