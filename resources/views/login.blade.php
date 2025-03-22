@@ -97,17 +97,35 @@
                     <p>OR</p>
                     <div class="h-px flex-1 bg-slate-200 dark:bg-navy-500"></div>
                 </div>
+                <div class="my-4 text-center text-xs-plus">
+                    <p class="line-clamp-1">
+                        <span>Sign up with or Login</span>
+                    </p>
+                </div>
                 <div class="flex space-x-4">
-                    <button
+                    <a href="{{ route('auth0.google') }}"
                         class="btn w-full space-x-3 border border-slate-300 font-medium text-slate-800 hover:bg-slate-150 focus:bg-slate-150 active:bg-slate-150/80 dark:border-navy-450 dark:text-navy-50 dark:hover:bg-navy-500 dark:focus:bg-navy-500 dark:active:bg-navy-500/90">
-                        <img class="size-5.5" src="{{ asset('images/100x100.png') }}" alt="logo" />
-                        <span>Google</span>
-                    </button>
-                    <button
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24">
+                            <path fill="#EA4335"
+                                d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z" />
+                            <path fill="#34A853"
+                                d="M16.04 18.013c-1.09.703-2.474 1.078-4.04 1.078a7.077 7.077 0 0 1-6.723-4.823l-4.04 3.067A11.965 11.965 0 0 0 12 24c2.933 0 5.735-1.043 7.834-3l-3.793-2.987Z" />
+                            <path fill="#4A90E2"
+                                d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.109-1.473-.272-2.182H12v4.637h6.436c-.317 1.559-1.17 2.766-2.395 3.558L19.834 21Z" />
+                            <path fill="#FBBC05"
+                                d="M5.277 14.268A7.12 7.12 0 0 1 4.909 12c0-.782.125-1.533.357-2.235L1.24 6.65A11.934 11.934 0 0 0 0 12c0 1.92.445 3.73 1.237 5.335l4.04-3.067Z" />
+                        </svg>
+                        <span>Login with Google</span>
+                    </a>
+                    <a href="{{ route('auth0.login') }}"
                         class="btn w-full space-x-3 border border-slate-300 font-medium text-slate-800 hover:bg-slate-150 focus:bg-slate-150 active:bg-slate-150/80 dark:border-navy-450 dark:text-navy-50 dark:hover:bg-navy-500 dark:focus:bg-navy-500 dark:active:bg-navy-500/90">
-                        <img class="size-5.5" src="{{ asset('images/100x100.png') }}" alt="logo" />
-                        <span>Github</span>
-                    </button>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 193.7 216.6">
+                            <path
+                                d="M189,66.9L169.2,0H97.7L118,66.9ZM97.7,0H26.3L6.4,66.9H76.9ZM6.4,66.9,0,80.2,76.9,216.6l19.4-66.9ZM189,66.9l6.7,13.3L118,216.6,97.7,149.7Z"
+                                fill="#EB5424" />
+                        </svg>
+                        <span>Auth0</span>
+                    </a>
                 </div>
             </form>
         </div>

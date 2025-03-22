@@ -24,12 +24,24 @@ Route::get('/', function(){
         return view('welcome');
     });
 
+// Social Login Routes (including Auth0)
+Route::get('login/{provider}', [AuthController::class, 'redirectToProvider'])
+    ->name('login.social')
+    ->middleware('guest')
+    ->where('provider', 'google|facebook|auth0');
+
+Route::get('login/{provider}/callback', [AuthController::class, 'handleProviderCallback'])
+    ->name('login.social.callback')
+    ->middleware('guest')
+    ->where('provider', 'google|facebook|auth0');
+
 Route::middleware('guest')->group(function () {
 
-    Route::get('/login', [\App\Http\Controllers\AuthController::class, 'loginView'])->name('loginView');
-    Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login'])->name('login');
-    Route::get('/register', [\App\Http\Controllers\AuthController::class, 'registerView'])->name('registerView');
-    Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register'])->name('register');
+
+    Route::get('/login', [AuthController::class, 'loginView'])->name('loginView');
+    Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::get('/register', [AuthController::class, 'registerView'])->name('registerView');
+    Route::post('/register', [AuthController::class, 'register'])->name('register');
 
     // Password Reset Routes
     Route::get('/forgot-password', [AuthController::class, 'forgotPasswordView'])->name('password.request');
@@ -306,3 +318,64 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboards/widget-ui', [PagesController::class, 'dashboardsWidgetUi'])->name('dashboards/widget-ui');
     Route::get('/dashboards/widget-contacts', [PagesController::class, 'dashboardsWidgetContacts'])->name('dashboards/widget-contacts');
 });
+
+// Add this route for debugging
+Route::get('/debug-socialite', function() {
+    try {
+        $providers = ['google', 'facebook', 'auth0'];
+        $results = [];
+
+        foreach ($providers as $provider) {
+            $results[$provider] = [
+                'configured' => class_exists('SocialiteProviders\\' . ucfirst($provider) . '\\' . ucfirst($provider) . 'ExtendSocialite'),
+                'settings' => [
+                    'client_id' => config('services.' . $provider . '.client_id') ? 'Set' : 'Not set',
+                    'client_secret' => config('services.' . $provider . '.client_secret') ? 'Set' : 'Not set',
+                    'redirect' => config('services.' . $provider . '.redirect'),
+                ]
+            ];
+
+            if ($provider === 'auth0') {
+                $results[$provider]['settings']['domain'] = config('services.auth0.domain');
+            }
+        }
+
+        return response()->json([
+            'providers' => $results,
+            'app_url' => env('APP_URL'),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->middleware('auth');
+
+// Add this debug route
+Route::get('/debug-auth0', function() {
+    return [
+        'routes' => [
+            'login_social' => route('login.social', 'auth0'),
+            'login_social_callback' => route('login.social.callback', 'auth0'),
+        ],
+        'config' => [
+            'auth0' => config('services.auth0'),
+            'app_url' => env('APP_URL'),
+        ]
+    ];
+});
+
+// Auth0 direct integration routes
+Route::get('/auth0/login', [App\Http\Controllers\Auth0LoginController::class, 'login'])
+    ->name('auth0.login')
+    ->middleware('guest');
+
+Route::get('/auth0/callback', [App\Http\Controllers\Auth0LoginController::class, 'callback'])
+    ->name('auth0.callback')
+    ->middleware('guest');
+
+// Direct Google login via Auth0
+Route::get('/auth0/google', [App\Http\Controllers\Auth0LoginController::class, 'loginWithGoogle'])
+    ->name('auth0.google')
+    ->middleware('guest');

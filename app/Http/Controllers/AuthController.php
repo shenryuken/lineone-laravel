@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Laravel\Socialite\Facades\Socialite;
+use Exception;
 
 class AuthController extends Controller
 {
@@ -22,7 +24,6 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-
         $validator = Validator::make($request->all(), [
             'email' => ['required', 'email', 'exists:users'],
             'password' => ['required'],
@@ -49,7 +50,6 @@ class AuthController extends Controller
     }
 
     public function register(Request $request){
-
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string'],
             'email' => ['required', 'email','unique:users'],
@@ -184,6 +184,111 @@ class AuthController extends Controller
             ]);
 
             return back()->withErrors(['email' => __('An error occurred while resetting your password. Please try again later.')]);
+        }
+    }
+
+    /**
+     * Redirect the user to the provider authentication page.
+     *
+     * @param string $provider
+     * @return \Illuminate\Http\Response
+     */
+    public function redirectToProvider($provider)
+    {
+        try {
+            // Validate that the provider is supported
+            if (!in_array($provider, ['google', 'facebook', 'auth0'])) {
+                return redirect()->route('login')->with('error', 'Unsupported login provider.');
+            }
+
+            // For debugging
+            \Log::info('Redirecting to provider', ['provider' => $provider]);
+
+            return Socialite::driver($provider)->redirect();
+        } catch (Exception $e) {
+            Log::error('Social login redirect error', [
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->route('login')->with('error', 'Unable to connect with ' . ucfirst($provider) . '. Please try again.');
+        }
+    }
+
+    /**
+     * Obtain the user information from the provider.
+     *
+     * @param string $provider
+     * @return \Illuminate\Http\Response
+     */
+    public function handleProviderCallback($provider)
+    {
+        try {
+            // Validate that the provider is supported
+            if (!in_array($provider, ['google', 'facebook', 'auth0'])) {
+                return redirect()->route('login')->with('error', 'Unsupported login provider.');
+            }
+
+            $socialUser = Socialite::driver($provider)->user();
+
+            // Get the user ID based on the provider
+            $providerId = $socialUser->getId();
+
+            // For Auth0, the ID is in the sub field
+            if ($provider === 'auth0' && empty($providerId) && isset($socialUser->user['sub'])) {
+                $providerId = $socialUser->user['sub'];
+            }
+
+            // Check if user already exists with this provider
+            $user = User::where('provider', $provider)
+                ->where('provider_id', $providerId)
+                ->first();
+
+            // If user doesn't exist, check if email exists
+            if (!$user) {
+                $user = User::where('email', $socialUser->getEmail())->first();
+
+                // If user with email exists, update provider details
+                if ($user) {
+                    $user->update([
+                        'provider' => $provider,
+                        'provider_id' => $providerId,
+                        'avatar' => $socialUser->getAvatar(),
+                    ]);
+                } else {
+                    // Create new user
+                    $user = DB::transaction(function () use ($socialUser, $provider, $providerId) {
+                        $user = User::create([
+                            'name' => $socialUser->getName(),
+                            'email' => $socialUser->getEmail(),
+                            'password' => Hash::make(Str::random(16)), // Random password
+                            'provider' => $provider,
+                            'provider_id' => $providerId,
+                            'avatar' => $socialUser->getAvatar(),
+                        ]);
+
+                        $user->createWalletIfNotExists();
+                        $user->assignRole('user'); // Assign default role
+
+                        return $user;
+                    });
+                }
+            }
+
+            // Login the user
+            auth()->login($user);
+
+            return redirect()->route('dashboard');
+
+        } catch (Exception $e) {
+            Log::error('Social login callback error', [
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->route('login')->with('error', 'Unable to login with ' . ucfirst($provider) . '. Please try again.');
         }
     }
 }

@@ -27,6 +27,9 @@ class User extends Authenticatable
         'status',
         'kyc_status',
         'account_type',
+        'provider',
+        'provider_id',
+        'avatar',
     ];
 
     /**

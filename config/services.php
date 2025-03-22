@@ -31,13 +31,20 @@ return [
         ],
     ],
 
-     'stripe' => [
+    'stripe' => [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook' => [
             'secret' => env('STRIPE_WEBHOOK_SECRET'),
             'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
         ],
+    ],
+
+    'auth0' => [
+        'client_id' => env('AUTH0_CLIENT_ID'),
+        'client_secret' => env('AUTH0_CLIENT_SECRET'),
+        'redirect' => env('AUTH0_REDIRECT_URI', env('APP_URL') . '/login/auth0/callback'),
+        'domain' => env('AUTH0_DOMAIN'),
     ],
 
 ];

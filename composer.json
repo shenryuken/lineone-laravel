@@ -7,9 +7,11 @@
     "require": {
         "php": "^8.2",
         "laravel/framework": "^11.0",
+        "laravel/socialite": "^5.18",
         "laravel/tinker": "^2.9",
         "league/csv": "9.0",
         "livewire/livewire": "^3.6",
+        "socialiteproviders/auth0": "^4.2",
         "spatie/laravel-permission": "^6.16",
         "stripe/stripe-php": "^16.6",
         "worksome/exchange": "^2.2"
