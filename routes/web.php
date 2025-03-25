@@ -79,6 +79,7 @@ Route::post('payment/status/check', [App\Http\Controllers\PaymentStatusControlle
     ->middleware(['auth']);
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', function () {
         if (auth()->user()->hasRole('admin')) {
             return view('admin.dashboard');
@@ -164,6 +165,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Transaction Routes
         Route::get('/transactions', [App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions.index');
         Route::get('/transactions/{transaction}', [App\Http\Controllers\Admin\TransactionController::class, 'show'])->name('transactions.show');
+
+        Route::get('/banks', [App\Http\Controllers\Admin\BankController::class, 'index'])->name('banks.index');
+        Route::get('/banks/create', [App\Http\Controllers\Admin\BankController::class, 'create'])->name('banks.create');
+        Route::get('/banks/{bank}/edit', [App\Http\Controllers\Admin\BankController::class, 'edit'])->name('banks.edit');
+
+        Route::get('/countries', [App\Http\Controllers\Admin\CountryController::class, 'index'])->name('countries.index');
+        Route::get('/countries/{country}', [App\Http\Controllers\Admin\CountryController::class, 'show'])->name('countries.show');
     });
     // Merchant KYB Routes
     Route::middleware('role:merchant')->prefix('merchant/kyb')->name('merchant.kyb.')->group(function () {
@@ -177,7 +185,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->name('logout');
+
     Route::get('/', [PagesController::class, 'dashboardsCrmAnalytics'])->name('index');
 
     Route::get('/elements/avatar', [PagesController::class, 'elementsAvatar'])->name('elements/avatar');

@@ -288,7 +288,7 @@
                     <div class="flex-1">
                         <div class="flex items-center gap-2">
                             <h3 class="text-base font-medium text-slate-700 dark:text-navy-100">
-                                Welcome, {{ Auth::user()->name }}
+                                {{ Auth::user()->name }}
                             </h3>
                             @if(Auth::user()->kyc_status === 'approved')
                             <div class="flex h-6 w-6 items-center justify-center rounded-full bg-success/10">

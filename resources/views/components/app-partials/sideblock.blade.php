@@ -37,7 +37,24 @@
                     </a>
                 </li> --}}
             </ul>
-
+            @role('admin')
+            <ul class="flex flex-1 flex-col px-4 font-inter">
+                <li>
+                    <a x-data="navLink" href="{{route('admin.banks.index')}}"
+                        :class="isActive ? 'font-medium text-primary dark:text-accent-light' : 'text-slate-600 hover:text-slate-900 dark:text-navy-200 dark:hover:text-navy-50'"
+                        class="flex py-2 text-xs-plus tracking-wide outline-hidden transition-colors duration-300 ease-in-out">
+                        Banks
+                    </a>
+                </li>
+                <li>
+                    <a x-data="navLink" href="{{route('admin.countries.index')}}"
+                        :class="isActive ? 'font-medium text-primary dark:text-accent-light' : 'text-slate-600 hover:text-slate-900 dark:text-navy-200 dark:hover:text-navy-50'"
+                        class="flex py-2 text-xs-plus tracking-wide outline-hidden transition-colors duration-300 ease-in-out">
+                        Countries
+                    </a>
+                </li>
+            </ul>
+            @endrole
             <ul class="flex flex-1 flex-col px-4 font-inter">
                 @role('admin')
                 <li x-data="accordionItem('menu-item-1')">
