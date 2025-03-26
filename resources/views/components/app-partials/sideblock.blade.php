@@ -192,7 +192,7 @@
                             {{ substr(Auth::user()->name, 0, 1) }}
                             @endif
                         </div>
-                        <div class="hidden sm:block">
+                        <div class="hidden xs:block">
                             <p class="text-sm font-medium text-slate-700 dark:text-navy-100 truncate">
                                 {{ Auth::user()->name }}
                             </p>
