@@ -20,9 +20,14 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
-Route::get('/', function(){
-        return view('welcome');
-    });
+Route::get('/', function () {
+    if (auth()->check()) {
+        // Redirect authenticated users to dashboard
+        return redirect()->route('dashboard'); // or your dashboard route name
+    }
+    // Show welcome page for guests
+    return view('welcome');
+});
 
 // Social Login Routes (including Auth0)
 Route::get('login/{provider}', [AuthController::class, 'redirectToProvider'])
@@ -203,7 +208,7 @@ Route::prefix('v1')->middleware('api.key.auth')->group(function () {
 
 Route::middleware('auth')->group(function () {
 
-    Route::get('/', [PagesController::class, 'dashboardsCrmAnalytics'])->name('index');
+    //Route::get('/', [PagesController::class, 'dashboardsCrmAnalytics'])->name('index');
 
     Route::get('/elements/avatar', [PagesController::class, 'elementsAvatar'])->name('elements/avatar');
     Route::get('/elements/alert', [PagesController::class, 'elementsAlert'])->name('elements/alert');
