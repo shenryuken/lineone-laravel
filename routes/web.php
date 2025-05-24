@@ -184,6 +184,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
+// Public routes (no authentication required)
+Route::prefix('v1')->group(function () {
+    // Process payment (for customers)
+    Route::post('payments/{requestId}/process', [PaymentGatewayController::class, 'processPayment']);
+    
+    // Webhook test endpoint
+    Route::post('webhooks/test', [WebhookController::class, 'test']);
+});
+
+// Protected API routes (require API key authentication)
+Route::prefix('v1')->middleware('api.key.auth')->group(function () {
+    // Payment gateway endpoints
+    Route::post('payments', [PaymentGatewayController::class, 'createPaymentRequest']);
+    Route::get('payments/{requestId}', [PaymentGatewayController::class, 'getPaymentRequestStatus']);
+    Route::post('payments/{requestId}/refund', [PaymentGatewayController::class, 'refundPayment']);
+});
+
 Route::middleware('auth')->group(function () {
 
     Route::get('/', [PagesController::class, 'dashboardsCrmAnalytics'])->name('index');
