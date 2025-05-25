@@ -146,14 +146,14 @@
                     </button>
 
                     <!-- Download Button -->
-                    <button
+                    <a  href="{{route('register')}}"
                         class="hidden md:inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
                         Sign Up
-                    </button>
-                    <button
+                    </a>
+                    <a href="{{route('login')}}"
                         class="hidden md:inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
                         Login
-                    </button>
+                    </a>
 
                     <!-- Mobile Menu Button -->
                     <button @click="mobileMenuOpen = !mobileMenuOpen"
