@@ -116,15 +116,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/kyc/update', [App\Http\Controllers\KycController::class, 'update'])->name('kyc.update');
     Route::get('/kyc/upload-additional', [App\Http\Controllers\KycController::class, 'uploadAdditionalDocument'])->name('kyc.upload.additional');
 
-    // KYB Routes
-    // Route::prefix('kyb')->name('kyb.')->group(function () {
-    //     Route::get('/dashboard', [App\Http\Controllers\KybController::class, 'dashboard'])->name('dashboard');
-    //     Route::get('/apply', [App\Http\Controllers\KybController::class, 'apply'])->name('apply');
-    //     Route::get('/status', [App\Http\Controllers\KybController::class, 'status'])->name('status');
-    //     Route::get('/view/{kyb}', [App\Http\Controllers\KybController::class, 'viewApplication'])->name('view');
-    //     Route::get('/update', [App\Http\Controllers\KybController::class, 'update'])->name('update');
-    //     Route::get('/upload-additional', [App\Http\Controllers\KybController::class, 'uploadAdditionalDocument'])->name('upload-additional');
-    // });
+    //KYB Routes
+    Route::prefix('kyb')->name('kyb.')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\KybController::class, 'dashboard'])->name('dashboard');
+        Route::get('/apply', [App\Http\Controllers\KybController::class, 'apply'])->name('apply');
+        Route::get('/status', [App\Http\Controllers\KybController::class, 'status'])->name('status');
+        Route::get('/view/{kyb}', [App\Http\Controllers\KybController::class, 'viewApplication'])->name('view');
+        Route::get('/update', [App\Http\Controllers\KybController::class, 'update'])->name('update');
+        Route::get('/upload-additional', [App\Http\Controllers\KybController::class, 'uploadAdditionalDocument'])->name('upload-additional');
+    });
 
 
     // Admin Routes
@@ -165,7 +165,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/pending-payments/{pendingPayment}/process-payment', [PendingPaymentController::class, 'processPayment'])->name('pending-payments.process-payment');
         // End Admin Pending Payments Routes
 
-        Route::prefix('kyb')->name('admin.kyb.')->group(function () {
+        Route::prefix('kyb')->name('kyb.')->group(function () {
             Route::get('/dashboard', [App\Http\Controllers\Admin\KybController::class, 'dashboard'])->name('dashboard');
             Route::get('/', [App\Http\Controllers\Admin\KybController::class, 'index'])->name('index');
             Route::get('/{kyb}', [App\Http\Controllers\Admin\KybController::class, 'show'])->name('show');
