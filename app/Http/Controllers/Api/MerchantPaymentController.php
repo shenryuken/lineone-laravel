@@ -31,6 +31,7 @@ class MerchantPaymentController extends Controller
 
         if ($validator->fails()) {
             return response()->json([
+                'success' => false,
                 'error' => 'Validation failed',
                 'details' => $validator->errors()
             ], 422);
@@ -42,6 +43,7 @@ class MerchantPaymentController extends Controller
         $todayTotal = $merchantApiKey->getTodayTransactionTotal();
         if (($todayTotal + $request->amount) > $merchantApiKey->daily_limit) {
             return response()->json([
+                'success' => false,
                 'error' => 'Daily transaction limit exceeded'
             ], 429);
         }
@@ -49,6 +51,7 @@ class MerchantPaymentController extends Controller
         // Check per-transaction limit
         if ($request->amount > $merchantApiKey->per_transaction_limit) {
             return response()->json([
+                'success' => false,
                 'error' => 'Transaction amount exceeds limit'
             ], 422);
         }
@@ -98,6 +101,7 @@ class MerchantPaymentController extends Controller
 
         if (!$paymentOrder) {
             return response()->json([
+                'success' => false,
                 'error' => 'Order not found'
             ], 404);
         }
@@ -175,6 +179,7 @@ class MerchantPaymentController extends Controller
 
         if (!$paymentOrder) {
             return response()->json([
+                'success' => false,
                 'error' => 'Order not found or cannot be cancelled'
             ], 404);
         }

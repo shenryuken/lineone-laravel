@@ -38,6 +38,7 @@
                     </a>
                 </li>
             </ul>
+
             @role('admin')
             <ul class="flex flex-1 flex-col px-4 font-inter">
                 <li>
@@ -70,6 +71,7 @@
                 </li>
             </ul>
             @endrole
+
             <ul class="flex flex-1 flex-col px-4 font-inter">
                 @role('admin')
                 <li x-data="accordionItem('menu-item-1')">
@@ -173,6 +175,119 @@
                     </ul>
                 </li>
                 @endrole
+
+                @role('merchant')
+                <!-- Merchant Payment Gateway Section -->
+                <li x-data="accordionItem('menu-payment-gateway')">
+                    <a :class="expanded ? 'text-slate-800 font-semibold dark:text-navy-50' : 'text-slate-600 dark:text-navy-200'"
+                        @click="expanded = !expanded"
+                        class="flex items-center justify-between py-2 text-xs+ tracking-wide outline-none transition-[color,padding-left] duration-300 ease-in-out hover:text-slate-800 dark:hover:text-navy-50"
+                        href="javascript:void(0);">
+                        <span class="flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                            <span>Payment Gateway</span>
+                        </span>
+                        <svg :class="expanded && 'rotate-90'" xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4 text-slate-400 transition-transform ease-in-out" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+                            </path>
+                        </svg>
+                    </a>
+                    <ul x-collapse x-show="expanded" class="pl-4 mt-1 space-y-1">
+                        <li>
+                            <a x-data="navLink" href="{{ route('merchant.api-keys.index') }}"
+                                :class="isActive ? 'font-medium text-primary dark:text-accent-light' : 'text-slate-600 hover:text-slate-900 dark:text-navy-200 dark:hover:text-navy-50'"
+                                class="flex items-center justify-between p-2 text-xs+ tracking-wide outline-none transition-[color,padding-left] duration-300 ease-in-out hover:pl-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="h-1.5 w-1.5 rounded-full border border-current opacity-40"></div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                    </svg>
+                                    <span>API Keys</span>
+                                </div>
+                                @php
+                                $activeKeysCount = Auth::user()->merchantApiKeys()->where('is_active', true)->count();
+                                @endphp
+                                @if($activeKeysCount > 0)
+                                <div
+                                    class="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-green-500 px-1 text-xs text-white">
+                                    {{ $activeKeysCount }}
+                                </div>
+                                @endif
+                            </a>
+                        </li>
+                        <li>
+                            <a x-data="navLink" href="{{ route('merchant.api-keys.create') }}"
+                                :class="isActive ? 'font-medium text-primary dark:text-accent-light' : 'text-slate-600 hover:text-slate-900 dark:text-navy-200 dark:hover:text-navy-50'"
+                                class="flex items-center justify-between p-2 text-xs+ tracking-wide outline-none transition-[color,padding-left] duration-300 ease-in-out hover:pl-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="h-1.5 w-1.5 rounded-full border border-current opacity-40"></div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Create API Key</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a x-data="navLink" href="#"
+                                :class="isActive ? 'font-medium text-primary dark:text-accent-light' : 'text-slate-600 hover:text-slate-900 dark:text-navy-200 dark:hover:text-navy-50'"
+                                class="flex items-center justify-between p-2 text-xs+ tracking-wide outline-none transition-[color,padding-left] duration-300 ease-in-out hover:pl-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="h-1.5 w-1.5 rounded-full border border-current opacity-40"></div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span>Documentation</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a x-data="navLink" href="#"
+                                :class="isActive ? 'font-medium text-primary dark:text-accent-light' : 'text-slate-600 hover:text-slate-900 dark:text-navy-200 dark:hover:text-navy-50'"
+                                class="flex items-center justify-between p-2 text-xs+ tracking-wide outline-none transition-[color,padding-left] duration-300 ease-in-out hover:pl-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="h-1.5 w-1.5 rounded-full border border-current opacity-40"></div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <span>Analytics</span>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a x-data="navLink" href="#"
+                                :class="isActive ? 'font-medium text-primary dark:text-accent-light' : 'text-slate-600 hover:text-slate-900 dark:text-navy-200 dark:hover:text-navy-50'"
+                                class="flex items-center justify-between p-2 text-xs+ tracking-wide outline-none transition-[color,padding-left] duration-300 ease-in-out hover:pl-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="h-1.5 w-1.5 rounded-full border border-current opacity-40"></div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span>Settings</span>
+                                </div>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                @endrole
             </ul>
         </div>
 
@@ -249,7 +364,15 @@
                             <div>
                                 <h4 class="text-sm font-medium text-slate-700 dark:text-white">{{ Auth::user()->name }}
                                 </h4>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">User</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @if(Auth::user()->hasRole('admin'))
+                                        Administrator
+                                    @elseif(Auth::user()->hasRole('merchant'))
+                                        Merchant
+                                    @else
+                                        User
+                                    @endif
+                                </p>
                             </div>
                         </div>
                     </div>

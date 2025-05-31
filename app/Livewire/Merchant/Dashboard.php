@@ -4,9 +4,12 @@ namespace App\Livewire\Merchant;
 
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Transaction;
+use App\Models\PaymentOrder;
+use App\Models\MerchantApiKey;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class Dashboard extends Component
 {
@@ -17,7 +20,7 @@ class Dashboard extends Component
     public $chartData = [];
     public $metrics = [];
     public $paymentMethods = [];
-    public $kybStatus = [];
+    public $kybStatus = 'pending submission';
 
     public function mount()
     {
@@ -26,16 +29,10 @@ class Dashboard extends Component
 
     public function loadData()
     {
-        // Load KYB verification status
+        $this->setDateRange();
         $this->loadKybStatus();
-
-        // Load metrics
         $this->loadMetrics();
-
-        // Load chart data
         $this->loadChartData();
-
-        // Load payment methods
         $this->loadPaymentMethods();
     }
 
@@ -46,7 +43,7 @@ class Dashboard extends Component
         switch ($this->period) {
             case 'today':
                 $this->dateRange = [
-                    'start' => $now->startOfDay(),
+                    'start' => $now->copy()->startOfDay(),
                     'end' => $now->copy()->endOfDay(),
                     'format' => 'H:i',
                     'unit' => 'hour'
@@ -81,96 +78,180 @@ class Dashboard extends Component
 
     public function loadMetrics()
     {
-        // In a real application, these would be fetched from the database
-        // For now, we'll use sample data
+        $user = Auth::user();
+        $cacheKey = "merchant_metrics_{$user->id}_{$this->period}";
+        
+        $this->metrics = Cache::remember($cacheKey, 300, function () use ($user) {
+            // Get payment orders for this merchant with correct column name
+            $baseQuery = PaymentOrder::query()
+                ->join('merchant_api_keys', 'payment_orders.merchant_api_key_id', '=', 'merchant_api_keys.id')
+                ->where('merchant_api_keys.user_id', $user->id)
+                ->whereBetween('payment_orders.created_at', [$this->dateRange['start'], $this->dateRange['end']]);
 
-        $this->metrics = [
-            'total_sales' => [
-                'value' => 15842.50,
-                'change' => 12.5,
-                'trend' => 'up'
-            ],
-            'transactions' => [
-                'value' => 324,
-                'change' => 8.2,
-                'trend' => 'up'
-            ],
-            'average_order' => [
-                'value' => 48.90,
-                'change' => 3.1,
-                'trend' => 'up'
-            ],
-            'conversion_rate' => [
-                'value' => 3.24,
-                'change' => -0.5,
-                'trend' => 'down'
-            ]
-        ];
+            // Calculate metrics
+            $totalSales = $baseQuery->clone()
+                ->where('payment_orders.status', 'paid')
+                ->sum('payment_orders.amount');
+
+            $transactionCount = $baseQuery->clone()->count();
+
+            $averageOrder = $transactionCount > 0 
+                ? $totalSales / $transactionCount 
+                : 0;
+
+            // Calculate conversion rate (successful vs total orders)
+            $totalOrders = $baseQuery->clone()->count();
+            $successfulOrders = $baseQuery->clone()
+                ->where('payment_orders.status', 'paid')
+                ->count();
+            
+            $conversionRate = $totalOrders > 0 
+                ? ($successfulOrders / $totalOrders) * 100 
+                : 0;
+
+            // Calculate previous period for comparison
+            $previousStart = $this->getPreviousPeriodStart();
+            $previousEnd = $this->getPreviousPeriodEnd();
+
+            $previousBaseQuery = PaymentOrder::query()
+                ->join('merchant_api_keys', 'payment_orders.merchant_api_key_id', '=', 'merchant_api_keys.id')
+                ->where('merchant_api_keys.user_id', $user->id)
+                ->whereBetween('payment_orders.created_at', [$previousStart, $previousEnd]);
+
+            $previousSales = $previousBaseQuery->clone()
+                ->where('payment_orders.status', 'paid')
+                ->sum('payment_orders.amount');
+
+            $previousTransactions = $previousBaseQuery->clone()->count();
+
+            $previousAverage = $previousTransactions > 0 
+                ? $previousSales / $previousTransactions 
+                : 0;
+
+            $previousTotalOrders = $previousBaseQuery->clone()->count();
+            
+            $previousSuccessfulOrders = $previousBaseQuery->clone()
+                ->where('payment_orders.status', 'paid')
+                ->count();
+
+            $previousConversionRate = $previousTotalOrders > 0 
+                ? ($previousSuccessfulOrders / $previousTotalOrders) * 100 
+                : 0;
+
+            return [
+                'total_sales' => [
+                    'value' => $totalSales,
+                    'change' => $this->calculatePercentageChange($totalSales, $previousSales),
+                    'trend' => $totalSales >= $previousSales ? 'up' : 'down'
+                ],
+                'transactions' => [
+                    'value' => $transactionCount,
+                    'change' => $this->calculatePercentageChange($transactionCount, $previousTransactions),
+                    'trend' => $transactionCount >= $previousTransactions ? 'up' : 'down'
+                ],
+                'average_order' => [
+                    'value' => $averageOrder,
+                    'change' => $this->calculatePercentageChange($averageOrder, $previousAverage),
+                    'trend' => $averageOrder >= $previousAverage ? 'up' : 'down'
+                ],
+                'conversion_rate' => [
+                    'value' => round($conversionRate, 2),
+                    'change' => $this->calculatePercentageChange($conversionRate, $previousConversionRate),
+                    'trend' => $conversionRate >= $previousConversionRate ? 'up' : 'down'
+                ]
+            ];
+        });
     }
 
     public function loadChartData()
     {
-        // In a real application, this would be fetched from the database
-        // For now, we'll use sample data
+        $user = Auth::user();
+        $cacheKey = "merchant_chart_{$user->id}_{$this->period}";
+        
+        $this->chartData = Cache::remember($cacheKey, 300, function () use ($user) {
+            $labels = [];
+            $salesData = [];
+            $transactionData = [];
 
-        // Sample data for sales chart
-        $this->chartData = [
-            'sales' => [
-                'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                'data' => [1250, 1580, 1320, 1740, 1530, 1680, 1750]
-            ],
-            'transactions' => [
-                'labels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                'data' => [42, 56, 38, 65, 48, 52, 53]
-            ]
-        ];
+            // Generate date range based on period
+            $current = $this->dateRange['start']->copy();
+            $end = $this->dateRange['end'];
+
+            while ($current <= $end) {
+                $nextPeriod = $this->getNextPeriod($current);
+                
+                $labels[] = $current->format($this->dateRange['format']);
+                
+                // Get sales for this period with correct column name
+                $periodSales = PaymentOrder::query()
+                    ->join('merchant_api_keys', 'payment_orders.merchant_api_key_id', '=', 'merchant_api_keys.id')
+                    ->where('merchant_api_keys.user_id', $user->id)
+                    ->whereBetween('payment_orders.created_at', [$current, $nextPeriod])
+                    ->where('payment_orders.status', 'paid')
+                    ->sum('payment_orders.amount');
+                
+                $periodTransactions = PaymentOrder::query()
+                    ->join('merchant_api_keys', 'payment_orders.merchant_api_key_id', '=', 'merchant_api_keys.id')
+                    ->where('merchant_api_keys.user_id', $user->id)
+                    ->whereBetween('payment_orders.created_at', [$current, $nextPeriod])
+                    ->count();
+
+                $salesData[] = $periodSales;
+                $transactionData[] = $periodTransactions;
+
+                $current = $nextPeriod->copy()->addSecond();
+            }
+
+            return [
+                'sales' => [
+                    'labels' => $labels,
+                    'data' => $salesData
+                ],
+                'transactions' => [
+                    'labels' => $labels,
+                    'data' => $transactionData
+                ]
+            ];
+        });
     }
 
     public function loadPaymentMethods()
     {
-        // In a real application, this would be fetched from the database
-        // For now, we'll use sample data
+        $user = Auth::user();
+        $cacheKey = "merchant_payment_methods_{$user->id}_{$this->period}";
+        
+        $this->paymentMethods = Cache::remember($cacheKey, 300, function () use ($user) {
+            // Check if payment_method column exists before querying
+            $paymentMethodStats = PaymentOrder::query()
+                ->join('merchant_api_keys', 'payment_orders.merchant_api_key_id', '=', 'merchant_api_keys.id')
+                ->where('merchant_api_keys.user_id', $user->id)
+                ->whereBetween('payment_orders.created_at', [$this->dateRange['start'], $this->dateRange['end']])
+                ->where('payment_orders.status', 'paid')
+                ->select(
+                    DB::raw('COALESCE(payment_orders.payment_method, "Unknown") as payment_method'),
+                    DB::raw('SUM(payment_orders.amount) as total_amount'),
+                    DB::raw('COUNT(*) as count')
+                )
+                ->groupBy(DB::raw('COALESCE(payment_orders.payment_method, "Unknown")'))
+                ->get();
 
-        $this->paymentMethods = [
-            [
-                'name' => 'Credit Card',
-                'percentage' => 45,
-                'amount' => 7129.13
-            ],
-            [
-                'name' => 'Bank Transfer',
-                'percentage' => 30,
-                'amount' => 4752.75
-            ],
-            [
-                'name' => 'Digital Wallet',
-                'percentage' => 20,
-                'amount' => 3168.50
-            ],
-            [
-                'name' => 'Cryptocurrency',
-                'percentage' => 5,
-                'amount' => 792.12
-            ]
-        ];
+            $totalAmount = $paymentMethodStats->sum('total_amount');
+            
+            return $paymentMethodStats->map(function ($stat) use ($totalAmount) {
+                return [
+                    'name' => $stat->payment_method ?: 'Unknown',
+                    'percentage' => $totalAmount > 0 ? round(($stat->total_amount / $totalAmount) * 100, 1) : 0,
+                    'amount' => $stat->total_amount,
+                    'count' => $stat->count
+                ];
+            })->sortByDesc('percentage')->values()->take(4)->toArray();
+        });
     }
 
     public function loadKybStatus()
     {
-        // In a real application, you would fetch the actual KYB status from the database
-        // For now, we'll use sample data
-
-        // You could fetch this from Auth::user()->kyb or a similar relationship
-        $this->kybStatus = [
-            'status' => 'pending', // Options: pending, approved, rejected, kiv (keep in view)
-            'submitted_at' => now()->subDays(3)->format('M d, Y'),
-            'last_updated' => now()->subDay()->format('M d, Y'),
-            'missing_documents' => [
-                'Business registration certificate',
-                'Proof of address',
-            ],
-            'verification_progress' => 25, // Percentage of completion
-        ];
+        $user = Auth::user();
+        $this->kybStatus = $user->kybStatus();
     }
 
     public function changePeriod($period)
@@ -181,51 +262,76 @@ class Dashboard extends Component
 
     public function getRecentTransactions()
     {
-        // In a real application, this would be fetched from the database
-        // For now, we'll return sample data
+        $user = Auth::user();
+        
+        return PaymentOrder::query()
+            ->join('merchant_api_keys', 'payment_orders.merchant_api_key_id', '=', 'merchant_api_keys.id')
+            ->where('merchant_api_keys.user_id', $user->id)
+            ->select('payment_orders.*')
+            ->latest('payment_orders.created_at')
+            ->limit(5)
+            ->get()
+            ->map(function ($order) {
+                return [
+                    'id' => $order->order_id,
+                    'customer' => $order->customer_email ?? 'Guest',
+                    'amount' => $order->amount,
+                    'status' => $order->status,
+                    'date' => $order->created_at->format('M d, Y h:i A'),
+                    'payment_method' => $order->payment_method ?? 'Unknown'
+                ];
+            })->toArray();
+    }
 
-        return [
-            [
-                'id' => 'TRX-'.rand(10000, 99999),
-                'customer' => 'John Doe',
-                'amount' => 125.50,
-                'status' => 'completed',
-                'date' => Carbon::now()->subHours(2)->format('M d, Y h:i A'),
-                'payment_method' => 'Credit Card'
-            ],
-            [
-                'id' => 'TRX-'.rand(10000, 99999),
-                'customer' => 'Jane Smith',
-                'amount' => 78.25,
-                'status' => 'completed',
-                'date' => Carbon::now()->subHours(5)->format('M d, Y h:i A'),
-                'payment_method' => 'Digital Wallet'
-            ],
-            [
-                'id' => 'TRX-'.rand(10000, 99999),
-                'customer' => 'Robert Johnson',
-                'amount' => 245.00,
-                'status' => 'pending',
-                'date' => Carbon::now()->subHours(8)->format('M d, Y h:i A'),
-                'payment_method' => 'Bank Transfer'
-            ],
-            [
-                'id' => 'TRX-'.rand(10000, 99999),
-                'customer' => 'Emily Wilson',
-                'amount' => 56.75,
-                'status' => 'completed',
-                'date' => Carbon::now()->subHours(12)->format('M d, Y h:i A'),
-                'payment_method' => 'Credit Card'
-            ],
-            [
-                'id' => 'TRX-'.rand(10000, 99999),
-                'customer' => 'Michael Brown',
-                'amount' => 189.99,
-                'status' => 'failed',
-                'date' => Carbon::now()->subHours(24)->format('M d, Y h:i A'),
-                'payment_method' => 'Cryptocurrency'
-            ]
-        ];
+    private function calculatePercentageChange($current, $previous)
+    {
+        if ($previous == 0) {
+            return $current > 0 ? 100 : 0;
+        }
+        
+        return round((($current - $previous) / $previous) * 100, 1);
+    }
+
+    private function getPreviousPeriodStart()
+    {
+        switch ($this->period) {
+            case 'today':
+                return $this->dateRange['start']->copy()->subDay();
+            case 'week':
+                return $this->dateRange['start']->copy()->subWeek();
+            case 'month':
+                return $this->dateRange['start']->copy()->subMonth();
+            case 'year':
+                return $this->dateRange['start']->copy()->subYear();
+        }
+    }
+
+    private function getPreviousPeriodEnd()
+    {
+        switch ($this->period) {
+            case 'today':
+                return $this->dateRange['end']->copy()->subDay();
+            case 'week':
+                return $this->dateRange['end']->copy()->subWeek();
+            case 'month':
+                return $this->dateRange['end']->copy()->subMonth();
+            case 'year':
+                return $this->dateRange['end']->copy()->subYear();
+        }
+    }
+
+    private function getNextPeriod($current)
+    {
+        switch ($this->dateRange['unit']) {
+            case 'hour':
+                return $current->copy()->endOfHour();
+            case 'day':
+                return $current->copy()->endOfDay();
+            case 'month':
+                return $current->copy()->endOfMonth();
+            default:
+                return $current->copy()->endOfDay();
+        }
     }
 
     public function render()
@@ -233,8 +339,7 @@ class Dashboard extends Component
         $recentTransactions = $this->getRecentTransactions();
 
         return view('livewire.merchant.dashboard', [
-            'recentTransactions' => $recentTransactions
+            'recentTransactions' => $recentTransactions,
         ]);
     }
 }
-
