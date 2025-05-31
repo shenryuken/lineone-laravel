@@ -1,6 +1,6 @@
 <?php
 
-// use App\Http\Controllers\PagesController;
+use App\Http\Controllers\PagesController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\KycController as AdminKycController;
 use App\Http\Controllers\Admin\PendingPaymentController;
@@ -9,6 +9,9 @@ use App\Http\Controllers\DepositController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\StripePaymentController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Gateway\PaymentGatewayController;
+use App\Http\Controllers\Gateway\WebhookController;
+use App\Http\Controllers\Gateway\MerchantGatewayController;
 
 /*
 |--------------------------------------------------------------------------
@@ -127,6 +130,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Admin Routes
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class);
+
+        Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+
+        // Transaction Routes
+        Route::get('/transactions', [App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions.index');
+        Route::get('/transactions/{transaction}', [App\Http\Controllers\Admin\TransactionController::class, 'show'])->name('transactions.show');
+
+        Route::get('/banks', [App\Http\Controllers\Admin\BankController::class, 'index'])->name('banks.index');
+        Route::get('/banks/create', [App\Http\Controllers\Admin\BankController::class, 'create'])->name('banks.create');
+        Route::get('/banks/{bank}/edit', [App\Http\Controllers\Admin\BankController::class, 'edit'])->name('banks.edit');
+
+        Route::get('/countries', [App\Http\Controllers\Admin\CountryController::class, 'index'])->name('countries.index');
+        Route::get('/countries/{country}', [App\Http\Controllers\Admin\CountryController::class, 'show'])->name('countries.show');
+    
         // Admin KYC Routes
         Route::get('/kyc/dashboard', function () {
             return view('admin.kyc.dashboard');
@@ -147,15 +164,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/pending-payments/{pendingPayment}/check-status', [PendingPaymentController::class, 'checkStatus'])->name('pending-payments.check-status');
         Route::post('/pending-payments/{pendingPayment}/process-payment', [PendingPaymentController::class, 'processPayment'])->name('pending-payments.process-payment');
         // End Admin Pending Payments Routes
+
+        Route::prefix('kyb')->name('admin.kyb.')->group(function () {
+            Route::get('/dashboard', [App\Http\Controllers\Admin\KybController::class, 'dashboard'])->name('dashboard');
+            Route::get('/', [App\Http\Controllers\Admin\KybController::class, 'index'])->name('index');
+            Route::get('/{kyb}', [App\Http\Controllers\Admin\KybController::class, 'show'])->name('show');
+        });
     });
     //End Admin Route
-
-    // Admin KYB Routes
-    Route::middleware('role:admin')->prefix('admin/kyb')->name('admin.kyb.')->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\Admin\KybController::class, 'dashboard'])->name('dashboard');
-        Route::get('/', [App\Http\Controllers\Admin\KybController::class, 'index'])->name('index');
-        Route::get('/{kyb}', [App\Http\Controllers\Admin\KybController::class, 'show'])->name('show');
-    });
 
     Route::middleware('role:merchant')->group(function () {
         Route::get('/merchant/dashboard', function () {
@@ -163,21 +179,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         })->name('merchant.dashboard');
     });
 
-    //Route Admin
-    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function (){
-        Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
-
-        // Transaction Routes
-        Route::get('/transactions', [App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions.index');
-        Route::get('/transactions/{transaction}', [App\Http\Controllers\Admin\TransactionController::class, 'show'])->name('transactions.show');
-
-        Route::get('/banks', [App\Http\Controllers\Admin\BankController::class, 'index'])->name('banks.index');
-        Route::get('/banks/create', [App\Http\Controllers\Admin\BankController::class, 'create'])->name('banks.create');
-        Route::get('/banks/{bank}/edit', [App\Http\Controllers\Admin\BankController::class, 'edit'])->name('banks.edit');
-
-        Route::get('/countries', [App\Http\Controllers\Admin\CountryController::class, 'index'])->name('countries.index');
-        Route::get('/countries/{country}', [App\Http\Controllers\Admin\CountryController::class, 'show'])->name('countries.show');
-    });
     // Merchant KYB Routes
     Route::middleware('role:merchant')->prefix('merchant/kyb')->name('merchant.kyb.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\KybController::class, 'dashboard'])->name('dashboard');
@@ -187,23 +188,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/update', [App\Http\Controllers\KybController::class, 'update'])->name('update');
         Route::get('/upload-additional', [App\Http\Controllers\KybController::class, 'uploadAdditionalDocument'])->name('upload-additional');
     });
-});
-
-// Public routes (no authentication required)
-Route::prefix('v1')->group(function () {
-    // Process payment (for customers)
-    Route::post('payments/{requestId}/process', [PaymentGatewayController::class, 'processPayment']);
-    
-    // Webhook test endpoint
-    Route::post('webhooks/test', [WebhookController::class, 'test']);
-});
-
-// Protected API routes (require API key authentication)
-Route::prefix('v1')->middleware('api.key.auth')->group(function () {
-    // Payment gateway endpoints
-    Route::post('payments', [PaymentGatewayController::class, 'createPaymentRequest']);
-    Route::get('payments/{requestId}', [PaymentGatewayController::class, 'getPaymentRequestStatus']);
-    Route::post('payments/{requestId}/refund', [PaymentGatewayController::class, 'refundPayment']);
 });
 
 Route::middleware('auth')->group(function () {
@@ -409,3 +393,51 @@ Route::get('/auth0/callback', [App\Http\Controllers\Auth0LoginController::class,
 Route::get('/auth0/google', [App\Http\Controllers\Auth0LoginController::class, 'loginWithGoogle'])
     ->name('auth0.google')
     ->middleware('guest');
+
+// Payment Gateway Routes (Public - for customers)
+Route::prefix('payment-gateway')->name('payment.gateway.')->group(function () {
+    // Customer-facing payment pages (public access)
+    Route::get('checkout/{requestId}', [PaymentGatewayController::class, 'showCheckout'])->name('checkout');
+    Route::post('process/{requestId}', [PaymentGatewayController::class, 'processPayment'])->name('process');
+    Route::get('success/{requestId}', [PaymentGatewayController::class, 'showSuccess'])->name('success');
+    Route::get('error/{requestId}', [PaymentGatewayController::class, 'showError'])->name('error');
+    
+    // Public webhook test endpoint
+    Route::post('webhook/test', [WebhookController::class, 'test'])->name('webhook.test');
+});
+
+// Merchant API Key Management Routes
+Route::middleware(['auth', 'verified', 'role:merchant'])->group(function () {
+    Route::prefix('merchant')->name('merchant.')->group(function () {
+        // API Key Management
+        Route::resource('api-keys', App\Http\Controllers\Merchant\ApiKeyController::class)->names([
+            'index' => 'api-keys.index',
+            'create' => 'api-keys.create',
+            'store' => 'api-keys.store',
+            'show' => 'api-keys.show',
+            'edit' => 'api-keys.edit',
+            'update' => 'api-keys.update',
+            'destroy' => 'api-keys.destroy',
+        ]);
+        
+        // Additional API Key actions
+        Route::patch('api-keys/{apiKey}/toggle', [App\Http\Controllers\Merchant\ApiKeyController::class, 'toggle'])
+            ->name('api-keys.toggle');
+        Route::patch('api-keys/{apiKey}/regenerate-secret', [App\Http\Controllers\Merchant\ApiKeyController::class, 'regenerateSecret'])
+            ->name('api-keys.regenerate-secret');
+
+         // Add API Testing route
+        Route::get('api-keys/test/console', [App\Http\Controllers\Merchant\ApiKeyController::class, 'testConsole'])
+            ->name('api-keys.test');
+
+        // Payment Gateway Dashboard
+        Route::prefix('payment-gateway')->name('payment.gateway.')->group(function () {
+            Route::get('/', [MerchantGatewayController::class, 'dashboard'])->name('dashboard');
+            Route::get('/transactions', [MerchantGatewayController::class, 'transactions'])->name('transactions.index');
+            Route::get('/transactions/{id}', [MerchantGatewayController::class, 'showTransaction'])->name('transactions.show');
+            Route::post('/transactions/{id}/refund', [MerchantGatewayController::class, 'refundTransaction'])->name('transactions.refund');
+            Route::get('/settings', [MerchantGatewayController::class, 'settings'])->name('settings');
+            Route::post('/settings', [MerchantGatewayController::class, 'updateSettings'])->name('settings.update');
+        });
+    });
+});

@@ -199,4 +199,65 @@ class User extends Authenticatable
     {
         return $this->hasManyThrough(Transaction::class, Wallet::class);
     }
+
+    /**
+     * Get the merchant API keys for the user.
+     */
+    public function merchantApiKeys(): HasMany
+    {
+        return $this->hasMany(MerchantApiKey::class);
+    }
+
+    /**
+     * Get the API keys for the user (if you have the old ApiKey model).
+     */
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(ApiKey::class);
+    }
+
+    /**
+     * Get the user's KYB application
+     */
+    public function kyb(): HasOne
+    {
+        return $this->hasOne(Kyb::class);
+    }
+
+    /**
+     * Get KYB status with proper fallback
+     */
+    public function kybStatus(): string
+    {
+        if (!$this->kyb) {
+            return 'pending submission';
+        }
+
+        return match($this->kyb->status) {
+            'approved' => 'verified',
+            'rejected' => 'rejected',
+            'pending' => 'under review',
+            'additional_info_required' => 'additional info required',
+            default => 'pending submission'
+        };
+    }
+
+    /**
+     * Check if user has completed KYB verification
+     */
+    public function hasCompletedKyb(): bool
+    {
+        return $this->kyb && $this->kyb->status === 'approved';
+    }
+
+    /**
+     * Get payment orders for this merchant (fixed with correct column name)
+     */
+    public function paymentOrders()
+    {
+        return PaymentOrder::query()
+            ->join('merchant_api_keys', 'payment_orders.merchant_api_key_id', '=', 'merchant_api_keys.id')
+            ->where('merchant_api_keys.user_id', $this->id)
+            ->select('payment_orders.*'); // Select only payment_orders columns to avoid conflicts
+    }
 }

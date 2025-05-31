@@ -163,7 +163,7 @@ class StripeWebhookController extends Controller
                 Log::error('Stripe webhook: Wallet not found', [
                     'payment_intent_id' => $paymentIntent->id,
                     'user_id' => $userId,
-                    'wallet_id' =>  => $paymentIntent->id,
+                    // 'wallet_id' =>  => $paymentIntent->id,
                     'user_id' => $userId,
                     'wallet_id' => $walletId
                 ]);

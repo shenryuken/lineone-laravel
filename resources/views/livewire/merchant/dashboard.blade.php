@@ -64,7 +64,7 @@
                 <!-- This would be dynamic based on actual KYB status -->
                 <div class="flex flex-col sm:items-end space-y-3">
                     <div class="badge rounded-full px-3 py-1.5 bg-warning/10 text-warning dark:bg-warning/15">
-                        Pending Verification
+                        {{ $kybStatus }}
                     </div>
 
                     <a href="{{ route('merchant.kyb.dashboard') }}"
