@@ -181,9 +181,14 @@
                         class="px-3 py-2 rounded-md text-secondary-600 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-800 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors duration-200">Benefits</a>
                     <a href="#testimonials" @click="mobileMenuOpen = false"
                         class="px-3 py-2 rounded-md text-secondary-600 dark:text-secondary-300 hover:bg-secondary-100 dark:hover:bg-secondary-800 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors duration-200">Testimonials</a>
-                    <a href="#download" @click="mobileMenuOpen = false"
-                        class="px-3 py-2 rounded-md text-white bg-primary-600 hover:bg-primary-700 font-medium transition-colors duration-200">Download
-                        App</a>
+                    <a href="{{route('register')}}" @click="mobileMenuOpen = false"
+                        class="px-3 py-2 rounded-md text-white bg-primary-600 hover:bg-primary-700 font-medium transition-colors duration-200">
+                        Sign Up
+                    </a>
+                    <a href="{{route('login')}}" @click="mobileMenuOpen = false"
+                        class="px-3 py-2 rounded-md text-white bg-green-600 hover:bg-green-700 font-medium transition-colors duration-200">
+                        Login
+                    </a>
                 </nav>
             </div>
         </div>
