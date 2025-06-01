@@ -252,6 +252,9 @@ class Dashboard extends Component
     {
         $user = Auth::user();
         $this->kybStatus = $user->kybStatus();
+        
+        // Debug the actual status
+        \Log::info('KYB Status for user '.$user->id.': '.$this->kybStatus);
     }
 
     public function changePeriod($period)

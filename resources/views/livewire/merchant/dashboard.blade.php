@@ -5,8 +5,52 @@
             <h2 class="text-xl font-medium text-slate-700 line-clamp-1 dark:text-navy-50 lg:text-2xl">
                 Merchant Dashboard
             </h2>
-            <div class="inline-flex ml-3">
-                <span class="badge bg-success/10 text-success dark:bg-success/15">Active</span>
+            <div class="gap-2 inline-flex ml-3">
+                <span class="badge bg-success/10 text-success dark:bg-success/15">
+                    <svg class=class="h-4 w-4 transition-colors duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M8.737 8.737a21.49 21.49 0 0 1 3.308-2.724m0 0c3.063-2.026 5.99-2.641 7.331-1.3 1.827 1.828.026 6.591-4.023 10.64-4.049 4.049-8.812 5.85-10.64 4.023-1.33-1.33-.736-4.218 1.249-7.253m6.083-6.11c-3.063-2.026-5.99-2.641-7.331-1.3-1.827 1.828-.026 6.591 4.023 10.64m3.308-9.34a21.497 21.497 0 0 1 3.308 2.724m2.775 3.386c1.985 3.035 2.579 5.923 1.248 7.253-1.336 1.337-4.245.732-7.295-1.275M14 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/>
+                    </svg>
+                    Active
+                </span>
+                <span class="badge bg-{{ 
+                    $kybStatus === 'verified' ? 'success' : 
+                    ($kybStatus === 'rejected' ? 'danger' : 
+                    ($kybStatus === 'under review' ? 'warning' : 
+                    ($kybStatus === 'additional info required' ? 'warning' : 'info')))
+                }}/10 text-{{ 
+                    $kybStatus === 'verified' ? 'success' : 
+                    ($kybStatus === 'rejected' ? 'danger' : 
+                    ($kybStatus === 'under review' ? 'warning' : 
+                    ($kybStatus === 'additional info required' ? 'warning' : 'info')))
+                }} dark:bg-{{ 
+                    $kybStatus === 'verified' ? 'success' : 
+                    ($kybStatus === 'rejected' ? 'danger' : 
+                    ($kybStatus === 'under review' ? 'warning' : 
+                    ($kybStatus === 'additional info required' ? 'warning' : 'info')))
+                }}/15 inline-flex items-center gap-1.5 py-1.5 px-3 rounded-full text-xs font-medium">
+                    @if($kybStatus === 'verified')
+                        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.5 11.5 11 13l4-3.5M12 20a16.405 16.405 0 0 1-5.092-5.804A16.694 16.694 0 0 1 5 6.666L12 4l7 2.667a16.695 16.695 0 0 1-1.908 7.529A16.406 16.406 0 0 1 12 20Z"/>
+                        </svg>
+                    @elseif($kybStatus === 'rejected')
+                        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10Z"/>
+                        </svg>
+                    @elseif($kybStatus === 'under review')
+                        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                        </svg>
+                    @elseif($kybStatus === 'additional info required')
+                        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13V8m0 8h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                        </svg>
+                    @else <!-- pending submission -->
+                        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15.5V8m-7 4a7 7 0 1 0 14 0 7 7 0 0 0-14 0Z"/>
+                        </svg>
+                    @endif
+                    {{ ucwords(str_replace('-', ' ', $kybStatus)) }}
+                </span>
             </div>
         </div>
 
@@ -49,6 +93,8 @@
     </div>
 
     <!-- KYB Verification Status -->
+    @if($kybStatus !== 'verified')
+    {{$kybStatus}}
     <div class="mb-5">
         <div class="card p-4 sm:p-5">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0">
@@ -182,6 +228,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Time Period Selector -->
     <div class="mb-5 flex items-center justify-between">
