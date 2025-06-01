@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Wallet Integration Example</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="../js/ewallet-sdk.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">E-Wallet Payment Integration Demo</h1>
+        
+        <div class="max-w-2xl mx-auto">
+            <!-- Product Card -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">Sample Product</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <span>Premium Subscription</span>
+                    <span class="text-2xl font-bold">MYR 99.00</span>
+                </div>
+                <p class="text-gray-600 mb-6">Access to all premium features for 1 month</p>
+                
+                <!-- Payment Buttons -->
+                <div class="space-y-3">
+                    <button id="pay-popup" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700">
+                        Pay with E-Wallet (Popup)
+                    </button>
+                    <button id="pay-redirect" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700">
+                        Pay with E-Wallet (Redirect)
+                    </button>
+                    <button id="pay-embed" class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700">
+                        Pay with E-Wallet (Embed)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Embedded Widget Container -->
+            <div id="ewallet-widget" class="hidden bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold mb-4">Complete Your Payment</h3>
+                <!-- Widget will be embedded here -->
+            </div>
+
+            <!-- Status Messages -->
+            <div id="status-message" class="hidden p-4 rounded-lg mb-4">
+                <span id="status-text"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize E-Wallet SDK
+        const ewallet = new EWalletSDK('test_pk_your_api_key_here', {
+            baseUrl: 'https://redicash.ai',
+            onSuccess: (payment) => {
+                showStatus('Payment successful! Payment ID: ' + payment.payment_id, 'success');
+                console.log('Payment completed:', payment);
+            },
+            onError: (error) => {
+                showStatus('Payment failed: ' + error, 'error');
+                console.error('Payment error:', error);
+            },
+            onCancel: (reason) => {
+                showStatus('Payment cancelled: ' + reason, 'warning');
+                console.log('Payment cancelled:', reason);
+            }
+        });
+
+        // Sample payment data
+        const paymentData = {
+            amount: 99.00,
+            currency: 'MYR',
+            description: 'Premium Subscription - 1 Month',
+            customer_email: 'customer@example.com',
+            customer_name: 'John Doe',
+            merchant_order_id: 'ORDER_' + Date.now(),
+            return_url: window.location.href + '?payment=success',
+            cancel_url: window.location.href + '?payment=cancelled',
+            webhook_url: 'https://your-merchant-website.com/webhooks/redicash',
+            metadata: {
+                product_id: 'premium_subscription',
+                plan: 'monthly'
+            }
+        };
+
+        // Event listeners
+        document.getElementById('pay-popup').addEventListener('click', () => {
+            ewallet.mode = 'popup';
+            ewallet.createPayment(paymentData);
+        });
+
+        document.getElementById('pay-redirect').addEventListener('click', () => {
+            ewallet.mode = 'redirect';
+            ewallet.createPayment(paymentData);
+        });
+
+        document.getElementById('pay-embed').addEventListener('click', () => {
+            ewallet.mode = 'embed';
+            document.getElementById('ewallet-widget').classList.remove('hidden');
+            ewallet.createPayment(paymentData);
+        });
+
+        // Helper function to show status messages
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status-message');
+            const statusText = document.getElementById('status-text');
+            
+            statusText.textContent = message;
+            statusDiv.className = `p-4 rounded-lg mb-4 ${getStatusClass(type)}`;
+            statusDiv.classList.remove('hidden');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function getStatusClass(type) {
+            switch (type) {
+                case 'success':
+                    return 'bg-green-100 border border-green-400 text-green-700';
+                case 'error':
+                    return 'bg-red-100 border border-red-400 text-red-700';
+                case 'warning':
+                    return 'bg-yellow-100 border border-yellow-400 text-yellow-700';
+                default:
+                    return 'bg-blue-100 border border-blue-400 text-blue-700';
+            }
+        }
+
+        // Check for payment status in URL (for redirect mode)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('payment') === 'success') {
+            showStatus('Payment completed successfully!', 'success');
+        } else if (urlParams.get('payment') === 'cancelled') {
+            showStatus('Payment was cancelled.', 'warning');
+        }
+    </script>
+</body>
+</html>
