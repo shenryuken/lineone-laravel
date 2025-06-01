@@ -18,7 +18,7 @@
     </div>
 
     <!-- Key Metrics -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6 mb-5">
+    {{-- <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6 mb-5">
         <!-- Total Users -->
         <div class="card p-4 sm:p-5">
             <div class="flex items-center justify-between">
@@ -134,8 +134,126 @@
                 </p>
             </div>
         </div>
+    </div> --}}
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <!-- Total Users Card -->
+    <div class="card bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10 border border-blue-100 dark:border-blue-900/20 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-300 mb-1">
+                    {{ __('Total Users') }}
+                </p>
+                <p class="text-2xl font-bold text-slate-800 dark:text-navy-100">
+                    {{ number_format($totalUsers) }}
+                </p>
+            </div>
+            <div class="p-3 rounded-xl bg-blue-100/50 dark:bg-blue-900/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center justify-between pt-3 border-t border-blue-100 dark:border-blue-900/20">
+            <div class="flex items-center space-x-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 @if($userGrowth >= 0) text-green-500 @else text-red-500 @endif" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@if($userGrowth >= 0) M5 10l7-7m0 0l7 7m-7-7v18 @else M19 14l-7 7m0 0l-7-7m7 7V3 @endif" />
+                </svg>
+                <span class="text-xs font-medium @if($userGrowth >= 0) text-green-600 dark:text-green-400 @else text-red-600 dark:text-red-400 @endif">
+                    {{ number_format($userGrowth, 1) }}%
+                </span>
+            </div>
+            <p class="text-xs text-blue-500 dark:text-blue-400">
+                {{ __('vs last month') }}
+            </p>
+        </div>
     </div>
 
+    <!-- Total Transactions Card -->
+    <div class="card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10 border border-purple-100 dark:border-purple-900/20 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-300 mb-1">
+                    {{ __('Total Transactions') }}
+                </p>
+                <p class="text-2xl font-bold text-slate-800 dark:text-navy-100">
+                    {{ number_format($totalTransactions) }}
+                </p>
+            </div>
+            <div class="p-3 rounded-xl bg-purple-100/50 dark:bg-purple-900/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center justify-between pt-3 border-t border-purple-100 dark:border-purple-900/20">
+            <div class="flex items-center space-x-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 @if($transactionGrowth >= 0) text-green-500 @else text-red-500 @endif" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@if($transactionGrowth >= 0) M5 10l7-7m0 0l7 7m-7-7v18 @else M19 14l-7 7m0 0l-7-7m7 7V3 @endif" />
+                </svg>
+                <span class="text-xs font-medium @if($transactionGrowth >= 0) text-green-600 dark:text-green-400 @else text-red-600 dark:text-red-400 @endif">
+                    {{ number_format($transactionGrowth, 1) }}%
+                </span>
+            </div>
+            <p class="text-xs text-purple-500 dark:text-purple-400">
+                {{ __('vs last month') }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Transaction Volume Card -->
+    <div class="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 border border-green-100 dark:border-green-900/20 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-300 mb-1">
+                    {{ __('Transaction Volume') }}
+                </p>
+                <p class="text-2xl font-bold text-slate-800 dark:text-navy-100">
+                    ${{ number_format($totalVolume, 2) }}
+                </p>
+            </div>
+            <div class="p-3 rounded-xl bg-green-100/50 dark:bg-green-900/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center justify-between pt-3 border-t border-green-100 dark:border-green-900/20">
+            <p class="text-xs text-green-600 dark:text-green-400">
+                {{ __('Avg. Transaction') }}
+            </p>
+            <p class="text-xs font-medium text-slate-700 dark:text-navy-100">
+                ${{ number_format($totalTransactions > 0 ? $totalVolume / $totalTransactions : 0, 2) }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Active Wallets Card -->
+    <div class="card bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-900/10 border border-amber-100 dark:border-amber-900/20 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-300 mb-1">
+                    {{ __('Active Wallets') }}
+                </p>
+                <p class="text-2xl font-bold text-slate-800 dark:text-navy-100">
+                    {{ number_format($totalWallets) }}
+                </p>
+            </div>
+            <div class="p-3 rounded-xl bg-amber-100/50 dark:bg-amber-900/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+            </div>
+        </div>
+        <div class="mt-4 flex items-center justify-between pt-3 border-t border-amber-100 dark:border-amber-900/20">
+            <p class="text-xs text-amber-600 dark:text-amber-400">
+                {{ __('Avg. Balance') }}
+            </p>
+            <p class="text-xs font-medium text-slate-700 dark:text-navy-100">
+                ${{ number_format($averageBalance, 2) }}
+            </p>
+        </div>
+    </div>
+</div>
     <!-- Charts -->
     <div class="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6 mb-5">
         <!-- Transaction Chart -->
