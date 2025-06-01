@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redicash Integration Demo - Merchant Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://redicash.ai/js/ewallet-sdk.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Store Header -->
+        <header class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-900">Demo Store</h1>
+                <div class="text-sm text-gray-600">
+                    Powered by <span class="font-semibold text-pink-600">Redicash</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-center mb-8">Redicash Payment Integration Demo</h2>
+            
+            <!-- Product Grid -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Product 1 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="h-48 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg mb-4 flex items-center justify-center">
+                        <span class="text-white text-lg font-semibold">Premium Plan</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Monthly Subscription</h3>
+                    <p class="text-gray-600 mb-4">Access to all premium features</p>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-2xl font-bold text-gray-900">MYR 99.00</span>
+                        <span class="text-sm text-gray-500">/month</span>
+                    </div>
+                    <button onclick="buyProduct('premium_monthly', 99.00, 'Premium Plan - Monthly')" 
+                            class="w-full bg-pink-600 text-white py-2 px-4 rounded-lg hover:bg-pink-700">
+                        Pay with Redicash
+                    </button>
+                </div>
+
+                <!-- Product 2 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="h-48 bg-gradient-to-br from-green-400 to-green-600 rounded-lg mb-4 flex items-center justify-center">
+                        <span class="text-white text-lg font-semibold">Pro Plan</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Annual Subscription</h3>
+                    <p class="text-gray-600 mb-4">Save 20% with annual billing</p>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-2xl font-bold text-gray-900">MYR 950.00</span>
+                        <span class="text-sm text-gray-500">/year</span>
+                    </div>
+                    <button onclick="buyProduct('pro_annual', 950.00, 'Pro Plan - Annual')" 
+                            class="w-full bg-pink-600 text-white py-2 px-4 rounded-lg hover:bg-pink-700">
+                        Pay with Redicash
+                    </button>
+                </div>
+
+                <!-- Product 3 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="h-48 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg mb-4 flex items-center justify-center">
+                        <span class="text-white text-lg font-semibold">Enterprise</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Enterprise License</h3>
+                    <p class="text-gray-600 mb-4">For large organizations</p>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-2xl font-bold text-gray-900">MYR 2,500.00</span>
+                        <span class="text-sm text-gray-500">one-time</span>
+                    </div>
+                    <button onclick="buyProduct('enterprise', 2500.00, 'Enterprise License')" 
+                            class="w-full bg-pink-600 text-white py-2 px-4 rounded-lg hover:bg-pink-700">
+                        Pay with Redicash
+                    </button>
+                </div>
+            </div>
+
+            <!-- Integration Methods Demo -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h3 class="text-xl font-semibold mb-4">Try Different Integration Methods</h3>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <button onclick="demoPopup()" 
+                            class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700">
+                        🪟 Popup Method
+                    </button>
+                    <button onclick="demoRedirect()" 
+                            class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700">
+                        🔄 Redirect Method
+                    </button>
+                    <button onclick="demoEmbed()" 
+                            class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700">
+                        📱 Embed Method
+                    </button>
+                </div>
+            </div>
+
+            <!-- Embedded Widget Container -->
+            <div id="redicash-widget" class="hidden bg-white rounded-lg shadow-md p-6 mb-8">
+                <h3 class="text-lg font-semibold mb-4">Complete Your Payment</h3>
+                <!-- Widget will be embedded here -->
+            </div>
+
+            <!-- Status Messages -->
+            <div id="status-message" class="hidden p-4 rounded-lg mb-4">
+                <span id="status-text"></span>
+            </div>
+
+            <!-- Integration Info -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-semibold mb-4">🔧 Integration Information</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold mb-2">API Endpoint:</h4>
+                        <code class="bg-gray-100 p-2 rounded text-sm block">https://redicash.ai/api/widget/payments/initialize</code>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">SDK URL:</h4>
+                        <code class="bg-gray-100 p-2 rounded text-sm block">https://redicash.ai/js/ewallet-sdk.js</code>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Test API Key:</h4>
+                        <code class="bg-gray-100 p-2 rounded text-sm block">test_pk_demo_key_12345</code>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Webhook URL:</h4>
+                        <code class="bg-gray-100 p-2 rounded text-sm block">https://your-store.com/webhooks/redicash</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Redicash SDK
+        const redicash = new EWalletSDK('test_pk_demo_key_12345', {
+            baseUrl: 'https://redicash.ai',
+            onSuccess: (payment) => {
+                showStatus(`✅ Payment successful! Payment ID: ${payment.payment_id}`, 'success');
+                console.log('Payment completed:', payment);
+                
+                // In a real store, you would:
+                // 1. Verify the payment via webhook
+                // 2. Grant access to the purchased product
+                // 3. Send confirmation email
+                // 4. Update user account
+            },
+            onError: (error) => {
+                showStatus(`❌ Payment failed: ${error}`, 'error');
+                console.error('Payment error:', error);
+            },
+            onCancel: (reason) => {
+                showStatus(`⚠️ Payment cancelled: ${reason}`, 'warning');
+                console.log('Payment cancelled:', reason);
+            }
+        });
+
+        // Buy product function
+        function buyProduct(productId, amount, description) {
+            const paymentData = {
+                amount: amount,
+                currency: 'MYR',
+                description: description,
+                customer_email: 'demo@example.com',
+                customer_name: 'Demo Customer',
+                merchant_order_id: `ORDER_${productId}_${Date.now()}`,
+                return_url: window.location.href + '?payment=success',
+                cancel_url: window.location.href + '?payment=cancelled',
+                webhook_url: 'https://demo-store.com/webhooks/redicash',
+                metadata: {
+                    product_id: productId,
+                    store: 'demo_store',
+                    customer_type: 'demo'
+                }
+            };
+
+            redicash.mode = 'popup';
+            redicash.createPayment(paymentData);
+        }
+
+        // Demo different integration methods
+        function demoPopup() {
+            redicash.mode = 'popup';
+            createDemoPayment('Popup Integration Demo');
+        }
+
+        function demoRedirect() {
+            redicash.mode = 'redirect';
+            createDemoPayment('Redirect Integration Demo');
+        }
+
+        function demoEmbed() {
+            redicash.mode = 'embed';
+            document.getElementById('redicash-widget').classList.remove('hidden');
+            createDemoPayment('Embed Integration Demo');
+        }
+
+        function createDemoPayment(description) {
+            const paymentData = {
+                amount: 50.00,
+                currency: 'MYR',
+                description: description,
+                customer_email: 'demo@example.com',
+                customer_name: 'Demo Customer',
+                merchant_order_id: `DEMO_${Date.now()}`,
+                return_url: window.location.href + '?demo=success',
+                cancel_url: window.location.href + '?demo=cancelled',
+                webhook_url: 'https://demo-store.com/webhooks/redicash',
+                metadata: {
+                    demo: true,
+                    integration_type: redicash.mode
+                }
+            };
+
+            redicash.createPayment(paymentData);
+        }
+
+        // Helper function to show status messages
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status-message');
+            const statusText = document.getElementById('status-text');
+            
+            statusText.textContent = message;
+            statusDiv.className = `p-4 rounded-lg mb-4 ${getStatusClass(type)}`;
+            statusDiv.classList.remove('hidden');
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        function getStatusClass(type) {
+            switch (type) {
+                case 'success':
+                    return 'bg-green-100 border border-green-400 text-green-700';
+                case 'error':
+                    return 'bg-red-100 border border-red-400 text-red-700';
+                case 'warning':
+                    return 'bg-yellow-100 border border-yellow-400 text-yellow-700';
+                default:
+                    return 'bg-blue-100 border border-blue-400 text-blue-700';
+            }
+        }
+
+        // Check for payment status in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('payment') === 'success' || urlParams.get('demo') === 'success') {
+            showStatus('🎉 Payment completed successfully!', 'success');
+        } else if (urlParams.get('payment') === 'cancelled' || urlParams.get('demo') === 'cancelled') {
+            showStatus('⚠️ Payment was cancelled.', 'warning');
+        }
+    </script>
+</body>
+</html>
