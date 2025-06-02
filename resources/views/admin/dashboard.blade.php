@@ -13,6 +13,19 @@
     </x-slot>
     <!-- Main Content Wrapper -->
     <main class="main-content w-full px-[var(--margin-x)] pb-8">
+        <div class="mt-4 sm:mt-5 md:mt-6">
+            <div
+                class="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0 pb-5 border-b border-slate-200 dark:border-navy-500">
+                <div>
+                    <h2 class="text-xl font-medium text-slate-700 dark:text-navy-50">
+                        Welcome back, {{ auth()->user()->name }}
+                    </h2>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-navy-300">
+                        Here's what's happening today
+                    </p>
+                </div>
+            </div>
+        </div>
         <livewire:admin.dashboard />
     </main>
     @push('scripts')

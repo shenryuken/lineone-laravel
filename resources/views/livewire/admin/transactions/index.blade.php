@@ -1,4 +1,20 @@
 <div class="py-12">
+    <div class="card mb-5 p-3">
+        <div class="flex flex-wrap items-center justify-between">
+            <h2 class="text-lg font-medium tracking-wide text-slate-700 dark:text-navy-100">
+                {{ __('Transaction Index') }}
+            </h2>
+            {{-- <div class="flex">
+                <select wire:model="period"
+                    class="form-select rounded-lg border border-slate-300 bg-white px-3 py-2 hover:border-slate-400 focus:border-primary dark:border-navy-450 dark:bg-navy-700 dark:hover:border-navy-400 dark:focus:border-accent">
+                    <option value="week">{{ __('Last 7 Days') }}</option>
+                    <option value="month">{{ __('Last 30 Days') }}</option>
+                    <option value="quarter">{{ __('Last Quarter') }}</option>
+                    <option value="year">{{ __('Last Year') }}</option>
+                </select>
+            </div> --}}
+        </div>
+    </div>
     <!-- Transaction Type Cards -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6 mb-5">
         <div class="card p-4 sm:p-5">

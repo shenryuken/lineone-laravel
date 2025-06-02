@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Gateway\PaymentGatewayController;
 use App\Http\Controllers\Gateway\WebhookController;
 use App\Http\Controllers\Gateway\MerchantGatewayController;
+use App\Http\Controllers\QrCodeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -331,6 +332,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboards/project-boards', [PagesController::class, 'dashboardsProjectBoards'])->name('dashboards/project-boards');
     Route::get('/dashboards/widget-ui', [PagesController::class, 'dashboardsWidgetUi'])->name('dashboards/widget-ui');
     Route::get('/dashboards/widget-contacts', [PagesController::class, 'dashboardsWidgetContacts'])->name('dashboards/widget-contacts');
+});
+
+// QR Code Routes
+Route::middleware('auth')->group(function () {
+    Route::get('/qr-code/generate', [QrCodeController::class, 'generateQrCode'])->name('qr-code.generate');
+    Route::post('/qr-code/validate', [QrCodeController::class, 'validateQrCode'])->name('qr-code.validate');
+    Route::post('/qr-code/payment', [QrCodeController::class, 'processQrPayment'])->name('qr-code.payment');
 });
 
 // Add this route for debugging
