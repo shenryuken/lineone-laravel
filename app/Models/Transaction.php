@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
+use App\Models\Wallet;
+use App\Models\User;
+use App\Models\BatchTransfer;
 
 class Transaction extends Model
 {
@@ -44,6 +48,17 @@ class Transaction extends Model
         'balance_after' => 'integer',
         'metadata' => 'array',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($transaction) {
+            if (empty($transaction->reference_id)) {
+                $transaction->reference_id = 'TXN' . strtoupper(Str::random(10));
+            }
+        });
+    }
 
     /**
      * Get the wallet that owns the transaction.
@@ -132,6 +147,70 @@ class Transaction extends Model
                 $this->type === self::TYPE_WITHDRAWAL_FEE || $this->type === self::TYPE_DEPOSIT_FEE
         )
             && $this->wallet->user_id === auth()->id();
+    }
+
+    public function batchTransfer()
+    {
+        return $this->belongsTo(BatchTransfer::class);
+    }
+
+    public function scopeForUser($query, $userId)
+    {
+        return $query->where(function($q) use ($userId) {
+            $q->where('sender_id', $userId)
+              ->orWhere('recipient_id', $userId);
+        });
+    }
+
+    public function scopeSent($query, $userId)
+    {
+        return $query->where('sender_id', $userId);
+    }
+
+    public function scopeReceived($query, $userId)
+    {
+        return $query->where('recipient_id', $userId);
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
+    }
+
+    public function getTypeDisplayAttribute()
+    {
+        return ucfirst(str_replace('_', ' ', $this->type));
+    }
+
+    public function getStatusDisplayAttribute()
+    {
+        return ucfirst($this->status);
+    }
+
+    public function isUserSender($userId)
+    {
+        return $this->sender_id == $userId;
+    }
+
+    public function isUserRecipient($userId)
+    {
+        return $this->recipient_id == $userId;
+    }
+
+    public function generateReceipt()
+    {
+        return [
+            'transaction_id' => $this->id,
+            'reference_id' => $this->reference_id,
+            'type' => $this->type,
+            'amount' => $this->amount / 100,
+            'currency' => $this->currency,
+            'description' => $this->description,
+            'status' => $this->status,
+            'created_at' => $this->created_at,
+            'wallet' => $this->wallet,
+            'user' => $this->wallet->user
+        ];
     }
 }
 

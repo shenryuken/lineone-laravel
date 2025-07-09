@@ -157,7 +157,7 @@
                     <h3 class="text-sm font-medium text-slate-700 dark:text-navy-100 mb-3">Favorite Recipients</h3>
                     <div class="space-y-2">
                         <!-- Favorite Contact 1 -->
-                        <div @click="selectedReceiver = 'john_doe'; showTransferForm = true" class="flex items-center p-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-600 dark:hover:bg-navy-500 cursor-pointer transition-colors">
+                        {{-- <div @click="selectedReceiver = 'john_doe'; showTransferForm = true" class="flex items-center p-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-600 dark:hover:bg-navy-500 cursor-pointer transition-colors">
                             <div class="avatar size-10 mr-3">
                                 <img class="rounded-full" src="{{asset('images/200x200.png')}}" alt="avatar" />
                             </div>
@@ -171,10 +171,10 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <!-- Favorite Contact 2 -->
-                        <div @click="selectedReceiver = 'sarah_wilson'; showTransferForm = true" class="flex items-center p-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-600 dark:hover:bg-navy-500 cursor-pointer transition-colors">
+                        {{-- <div @click="selectedReceiver = 'sarah_wilson'; showTransferForm = true" class="flex items-center p-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-600 dark:hover:bg-navy-500 cursor-pointer transition-colors">
                             <div class="avatar size-10 mr-3">
                                 <div class="is-initial rounded-full bg-info text-white">SW</div>
                             </div>
@@ -188,10 +188,10 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <!-- Favorite Contact 3 -->
-                        <div @click="selectedReceiver = 'mike_chen'; showTransferForm = true" class="flex items-center p-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-600 dark:hover:bg-navy-500 cursor-pointer transition-colors">
+                        {{-- <div @click="selectedReceiver = 'mike_chen'; showTransferForm = true" class="flex items-center p-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-navy-600 dark:hover:bg-navy-500 cursor-pointer transition-colors">
                             <div class="avatar size-10 mr-3">
                                 <div class="is-initial rounded-full bg-warning text-white">MC</div>
                             </div>
@@ -205,7 +205,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                 </svg>
                             </div>
-                        </div>
+                        </div> --}}
                     </div>
                 </div>
 
@@ -218,7 +218,7 @@
                         </button>
                     </div>
                     <div class="space-y-2">
-                        <div class="flex items-center p-2 rounded-lg bg-slate-50 dark:bg-navy-700">
+                        {{-- <div class="flex items-center p-2 rounded-lg bg-slate-50 dark:bg-navy-700">
                             <div class="avatar size-8 mr-3">
                                 <div class="is-initial rounded-full bg-success text-white text-xs">JD</div>
                             </div>
@@ -243,7 +243,7 @@
                                 <p class="text-sm font-medium text-slate-700 dark:text-navy-100">-RM 25.00</p>
                                 <p class="text-xs text-success">Completed</p>
                             </div>
-                        </div>
+                        </div> --}}
                     </div>
                 </div>
 
