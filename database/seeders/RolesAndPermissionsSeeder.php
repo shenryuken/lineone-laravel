@@ -33,15 +33,27 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Create a demo admin user
         $admin = User::factory()->create([
-            'name' => 'Admin User 2',
-            'email' => 'admin2@example.com',
+            'name' => 'Admin',
+            'email' => 'admin@redicash.com',
         ]);
         $admin->assignRole('admin');
+
+        $staff = User::factory()->create([
+            'name' => 'Staff',
+            'email' => 'staff@redicash.com',
+        ]);
+        $staff->assignRole('staff');
+
+        $user = User::factory()->create([
+            'name' => 'User',
+            'email' => 'user@redicash.com',
+        ]);
+        $user->assignRole('user');
 
         // Create a demo merchant user
         $merchant = User::factory()->create([
             'name' => 'Merchant User',
-            'email' => 'merchant@example.com',
+            'email' => 'merchant@redicash.com',
         ]);
         $merchant->assignRole('merchant');
 

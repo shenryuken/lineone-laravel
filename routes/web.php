@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\KycController as AdminKycController;
 use App\Http\Controllers\Admin\PendingPaymentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DepositController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\StripePaymentController;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +14,10 @@ use App\Http\Controllers\Gateway\PaymentGatewayController;
 use App\Http\Controllers\Gateway\WebhookController;
 use App\Http\Controllers\Gateway\MerchantGatewayController;
 use App\Http\Controllers\QrCodeController;
+use App\Http\Controllers\TransferHistoryController;
+use App\Http\Controllers\TransferLimitController;
+use App\Http\Controllers\BatchTransferController;
+use App\Http\Controllers\SettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -99,6 +104,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
     })->name('dashboard');
 
+    // Settings Routes
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [SettingsController::class, 'index'])->name('index');
+        Route::get('/profile', [SettingsController::class, 'profile'])->name('profile');
+        Route::get('/security', [SettingsController::class, 'security'])->name('security');
+        Route::get('/notifications', [SettingsController::class, 'notifications'])->name('notifications');
+        Route::get('/limits', [SettingsController::class, 'limits'])->name('limits');
+        Route::get('/preferences', [SettingsController::class, 'preferences'])->name('preferences');
+        Route::get('/api', [SettingsController::class, 'api'])->name('api');
+    });
+
+
     // Route::get('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])->name('deposit.callback');
     // Route::post('/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback']);
     // Deposit callback routes - support both GET and POST methods
@@ -108,6 +125,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/transactions/history', function () {
         return view('transactions.history');
     })->name('transactions.history');
+
+    // Transfer History Routes
+    Route::prefix('transfers')->name('transfers.')->group(function () {
+        Route::get('/history', [TransferHistoryController::class, 'index'])->name('history.index');
+        Route::get('/history/{transaction}', [TransferHistoryController::class, 'show'])->name('history.show');
+        Route::get('/history/{transaction}/receipt', [TransferHistoryController::class, 'downloadReceipt'])->name('history.receipt');
+        Route::get('/history/export/csv', [TransferHistoryController::class, 'exportHistory'])->name('history.export');
+        
+        // Transfer Limits Routes
+        Route::get('/limits', [TransferLimitController::class, 'index'])->name('limits.index');
+        Route::put('/limits', [TransferLimitController::class, 'update'])->name('limits.update');
+        Route::post('/limits/request-increase', [TransferLimitController::class, 'requestIncrease'])->name('limits.request-increase');
+        Route::post('/limits/check', [TransferLimitController::class, 'checkLimit'])->name('limits.check');
+    });
 
     // KYC Routes
     Route::get('/kyc/dashboard', [App\Http\Controllers\KycController::class, 'dashboard'])->name('kyc.dashboard');
@@ -188,6 +219,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/application/{kyb}', [App\Http\Controllers\KybController::class, 'viewApplication'])->name('view');
         Route::get('/update', [App\Http\Controllers\KybController::class, 'update'])->name('update');
         Route::get('/upload-additional', [App\Http\Controllers\KybController::class, 'uploadAdditionalDocument'])->name('upload-additional');
+    });
+
+    // Batch Transfer Routes (Admin, Fund Manager, Merchant only)
+    Route::middleware('can:create-batch-transfer')->group(function () {
+        Route::get('/batch', [BatchTransferController::class, 'index'])->name('batch.index');
+        Route::get('/batch/create', [BatchTransferController::class, 'create'])->name('batch.create');
+        Route::post('/batch', [BatchTransferController::class, 'store'])->name('batch.store');
+        Route::get('/batch/{batchTransfer}', [BatchTransferController::class, 'show'])->name('batch.show');
+        Route::get('/batch/{batchTransfer}/download', [BatchTransferController::class, 'downloadReport'])->name('batch.download');
     });
 });
 

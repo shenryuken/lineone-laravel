@@ -39,6 +39,12 @@ return [
             'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
         ],
     ],
+    
+    'redicash' => [
+        'public_key' => env('REDICASH_PUBLIC_KEY'),
+        'secret_key' => env('REDICASH_SECRET_KEY'),
+        'webhook_secret' => env('REDICASH_WEBHOOK_SECRET'),
+    ],
 
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),

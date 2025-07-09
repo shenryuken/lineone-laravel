@@ -289,6 +289,13 @@ class WalletService
             'amount' => $amount,
             'description' => $description
         ]);
+        // Check transfer limits for the user
+        $this->checkTransferLimits($fromWallet->user, $amount);
+        // Log the transfer attempt
+        Log::info('Checking transfer limits', [
+            'user_id' => $fromWallet->user_id,
+            'amount' => $amount
+        ]);
 
         return DB::transaction(function () use ($fromWallet, $toWallet, $amount, $description)
         {
@@ -367,6 +374,8 @@ class WalletService
             // CHANGE: Increment version for optimistic locking
             $fromWallet->increment('version');
             $toWallet->increment('version');
+
+            $fromWallet->user->transferLimit->recordTransfer((int)($amountCents));
 
             Log::info('Transfer completed successfully', [
                 'from_wallet_id' => $fromWallet->id,
@@ -495,5 +504,17 @@ class WalletService
                 'net_amount' => $netAmountCents / 100
             ];
         });
+    }
+
+    private function checkTransferLimits(User $user, float $amount): void
+    {
+        $transferLimit = $user->transferLimit ?? $user->transferLimit()->create([]);
+        $amountCents = (int)($amount * 100);
+
+        if (!$transferLimit->canTransfer($amountCents)) {
+            throw ValidationException::withMessages([
+                'amount' => 'Transfer amount exceeds your daily, monthly, or single transfer limit.'
+            ]);
+        }
     }
 }
