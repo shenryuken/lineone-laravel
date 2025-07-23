@@ -71,6 +71,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/stripe/success', [StripePaymentController::class, 'success'])->name('stripe.success');
     Route::get('/stripe/cancel', [StripePaymentController::class, 'cancel'])->name('stripe.cancel');
 
+    // Redicash checkout routes
+    Route::get('/redicash/checkout', [App\Http\Controllers\RedicashCheckoutController::class, 'showCheckout'])->name('redicash.checkout');
+    Route::post('/redicash/checkout/process', [App\Http\Controllers\RedicashCheckoutController::class, 'processCheckout'])->name('redicash.checkout.process');
+    Route::get('/redicash/checkout/cancel', [App\Http\Controllers\RedicashCheckoutController::class, 'cancelCheckout'])->name('redicash.checkout.cancel');
+
     Route::match(['get', 'post'], '/deposit/callback/{wallet}/{method}', [DepositController::class, 'handleCallback'])
         ->name('deposit.callback');
 });
@@ -82,6 +87,7 @@ Route::post('redipay/callback', [App\Http\Controllers\RediPayCallbackController:
 Route::match(['get', 'post'], 'redipay/success', [App\Http\Controllers\PaymentStatusController::class, 'show'])
     ->name('redipay.success')
     ->withoutMiddleware(['auth']);
+
 
 // Payment status routes
 Route::get('payment/status/{reference?}', [App\Http\Controllers\PaymentStatusController::class, 'show'])

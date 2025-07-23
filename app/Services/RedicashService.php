@@ -4,68 +4,99 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 
 class RedicashService
 {
     protected $baseUrl;
     protected $publicKey;
     protected $secretKey;
+    protected $webhookSecret;
     protected $mode;
 
     public function __construct()
     {
-        $this->mode = config('app.env') === 'production' ? 'production' : 'development';
-        $this->baseUrl = $this->mode === 'production' 
-            ? 'https://redicash.ai/api/v1'
-            : 'https://redicashv2.test/api/v1';
+        $this->mode = config('redicash.mode', 'development');
         
-        $this->publicKey = config('services.redicash.public_key');
-        $this->secretKey = config('services.redicash.secret_key');
+        // Get configuration based on mode
+        $config = config("redicash.{$this->mode}");
+        $this->baseUrl = $config['base_url'];
+        $this->publicKey = $config['public_key'];
+        $this->secretKey = $config['secret_key'];
+        $this->webhookSecret = config('redicash.webhook.secret');
 
+        // For testing purposes, provide more detailed error information
         if (empty($this->publicKey) || empty($this->secretKey)) {
-            throw new \Exception('Redicash configuration is incomplete');
+            throw new \Exception('Redicash configuration is incomplete. Missing API keys. Please add REDICASH_DEV_PUBLIC_KEY and REDICASH_DEV_SECRET_KEY to your .env file.');
         }
     }
 
     /**
-     * Create a new payment
+     * Create a new payment according to official Redicash API guide
      */
     public function createPayment(array $paymentData)
     {
         Log::info('Creating Redicash payment', ['data' => $paymentData]);
 
         try {
+            // Format payload according to official Redicash API documentation
             $payload = [
-                'amount' => $paymentData['amount'],
+                'amount' => $paymentData['amount'], // Should be in cents
                 'currency' => $paymentData['currency'] ?? 'MYR',
-                'payment_method' => $paymentData['payment_method'] ?? 'card',
                 'customer' => [
-                    'email' => $paymentData['email'] ?? null,
-                    'name' => $paymentData['name'] ?? null,
-                    'phone' => $paymentData['phone'] ?? null,
+                    'name' => $paymentData['customer']['name'] ?? $paymentData['name'] ?? null,
+                    'email' => $paymentData['customer']['email'] ?? $paymentData['email'] ?? null,
+                    'phone' => $paymentData['customer']['phone'] ?? $paymentData['phone'] ?? null,
                 ],
-                'metadata' => $paymentData['metadata'] ?? [],
                 'return_url' => $paymentData['return_url'] ?? route('dashboard'),
                 'cancel_url' => $paymentData['cancel_url'] ?? route('dashboard'),
+                'metadata' => $paymentData['metadata'] ?? [],
             ];
 
-            $response = Http::withHeaders([
+            // Add optional fields if provided
+            if (isset($paymentData['reference_id'])) {
+                $payload['reference_id'] = $paymentData['reference_id'];
+            }
+            if (isset($paymentData['description'])) {
+                $payload['description'] = $paymentData['description'];
+            }
+
+            Log::info('Redicash payload prepared', ['payload' => $payload]);
+
+            // Send request according to official API documentation with proper headers
+            $response = Http::withOptions([
+                'verify' => false, // Disable SSL verification for development
+                'timeout' => 30,
+            ])->withHeaders([
                 'Authorization' => 'Bearer ' . $this->publicKey,
                 'X-Secret-Key' => $this->secretKey,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
             ])->post($this->baseUrl . '/payments', $payload);
 
+            Log::info('Redicash API response', [
+                'status' => $response->status(),
+                'headers' => $response->headers(),
+                'body' => $response->body()
+            ]);
+
             if ($response->successful()) {
                 return $response->json();
             }
 
-            throw new \Exception('Failed to create Redicash payment: ' . $response->body());
+            // Enhanced error handling according to official guide
+            $errorBody = $response->body();
+            $errorData = json_decode($errorBody, true);
+            
+            if (isset($errorData['error']['message'])) {
+                throw new \Exception('Redicash API Error: ' . $errorData['error']['message']);
+            }
+
+            throw new \Exception('Failed to create Redicash payment: ' . $errorBody);
         } catch (\Exception $e) {
             Log::error('Redicash payment creation failed', [
                 'error' => $e->getMessage(),
-                'data' => $paymentData
+                'data' => $paymentData,
+                'trace' => $e->getTraceAsString()
             ]);
             throw $e;
         }
@@ -79,7 +110,10 @@ class RedicashService
         Log::info('Getting Redicash payment status', ['paymentId' => $paymentId]);
 
         try {
-            $response = Http::withHeaders([
+            $response = Http::withOptions([
+                'verify' => false, // Disable SSL verification for development
+                'timeout' => 30,
+            ])->withHeaders([
                 'Authorization' => 'Bearer ' . $this->publicKey,
                 'X-Secret-Key' => $this->secretKey,
                 'Accept' => 'application/json',
@@ -107,7 +141,10 @@ class RedicashService
         Log::info('Listing Redicash payments', ['filters' => $filters]);
 
         try {
-            $response = Http::withHeaders([
+            $response = Http::withOptions([
+                'verify' => false, // Disable SSL verification for development
+                'timeout' => 30,
+            ])->withHeaders([
                 'Authorization' => 'Bearer ' . $this->publicKey,
                 'X-Secret-Key' => $this->secretKey,
                 'Accept' => 'application/json',
@@ -135,7 +172,10 @@ class RedicashService
         Log::info('Canceling Redicash payment', ['paymentId' => $paymentId]);
 
         try {
-            $response = Http::withHeaders([
+            $response = Http::withOptions([
+                'verify' => false, // Disable SSL verification for development
+                'timeout' => 30,
+            ])->withHeaders([
                 'Authorization' => 'Bearer ' . $this->publicKey,
                 'X-Secret-Key' => $this->secretKey,
                 'Accept' => 'application/json',
@@ -156,11 +196,12 @@ class RedicashService
     }
 
     /**
-     * Verify webhook signature
+     * Verify webhook signature according to official guide
      */
-    public function verifyWebhookSignature(string $payload, string $signature, string $secret)
+    public function verifyWebhookSignature(string $payload, string $signature, string $secret = null)
     {
-        $expectedSignature = hash_hmac('sha256', $payload, $secret);
+        $webhookSecret = $secret ?? $this->webhookSecret;
+        $expectedSignature = 'sha256=' . hash_hmac('sha256', $payload, $webhookSecret);
         return hash_equals($expectedSignature, $signature);
     }
 }

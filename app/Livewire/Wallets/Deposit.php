@@ -7,6 +7,7 @@ use App\Models\Wallet;
 use App\Models\PendingPayment;
 use App\Services\ToyyibPayService;
 use App\Services\RediPayService;
+use App\Services\RedicashService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
@@ -98,7 +99,7 @@ class Deposit extends Component
     {
         return [
             'amount' => 'required|numeric|min:10',
-            'paymentMethod' => 'required|in:redipay,stripe',
+            'paymentMethod' => 'required|in:redipay,stripe,redicash',
             'wallet_id' => 'required|exists:wallets,id'
         ];
     }
@@ -354,6 +355,12 @@ class Deposit extends Component
                     'amount' => $this->amount,
                     'wallet_id' => $this->wallet_id,
                     'reference_id' => $referenceNo
+                ]);
+            } elseif ($this->paymentMethod === 'redicash') {
+                // For Redicash, redirect to checkout confirmation page
+                return redirect()->route('redicash.checkout', [
+                    'amount' => $this->amount,
+                    'wallet_id' => $this->wallet_id
                 ]);
             }
         } catch (\Exception $e) {
